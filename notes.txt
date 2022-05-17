@@ -107,8 +107,8 @@ Create Form and validate Input.
         8) Now, we have to create a database instance by passing our flask app.: db = SQLALCHEMY(app).
         9) The great thing about SQLALCHEMY is that we can represent our database structure as Classes(Models).
         10) Whenever we create a class to model a database structure, we extend the class with "db.Model". Here, db is the database instance.
-        11) Now define all the columns for the table.(Eg: For User Class, columns might be id, yusername, email, password etc.)
-        12) To add a user Instatntiate the class by passing all the fields as **kwargs.
+        11) Now define all the columns for the table.(Eg: For User Class, columns might be id, username, email, password etc.)
+        12) To add a user Instatntiate the class by passing all the fields.
         13)Now perform a command: db.session.add(<user instance>)
         14)Now commit the changes using the command db.session.commit()
 
