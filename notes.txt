@@ -1,0 +1,160 @@
+Install Virtual Environment : 
+    1) py -3 -m venv venv
+    2) Select Interpreter . View > Command Palette > Select Interpreter
+    3) Set Command Line to Virtual Env. venv\Scripts\activate.bat
+
+Install Flask: 
+    1) Open REPL. import Flask. If no error, imported succesfully. The package gets installed in venv\Lib
+
+Basic Flask Application
+    1) Import Flask from flask package. 
+    2) Create a instance of Flask App like app = Flask(__name__). Here __name__ means our directory. It tells flask where to look for static files and templates files.
+    3)Create a decorator like app.route("/). It is a decorator which handles all the logic of rendering our files to appropriate URL.
+    4)Create a function and render some text. Our flask app is ready to be served.
+
+Serving Flask App:
+    Flask Way
+        Before we run the file, we have to set an environment variable to the file we want to be our flask application.
+        1) run the command: set FLASK_APP=<filename>.py
+        2) now, run the command: flask run.
+        3) The application should start without any errors. The application is hosted on localmachine on port 5000. It is a running webserver. It comes with flask. It should be running if we want to visit our site.
+        4) The application runs in Production Mode by default. To switch it to developement/debug mode, set another environment varible.
+        5) set FLASK_DEBUG=1. Now, the application runs in debug mode.
+    Python Way
+       1) If we don't want to set up environment variables, we can directly run the file from terminal using Python <filename.py> command.
+       2) But before that, we have to write a line of code in our flask application: app.run(debug=True)
+       3) The line should be at thebottom of the file.
+       4) Its better to wrap this file in a condition: 
+                if __main__ == "__main__:
+                    app.run(debug=True).
+       5) The condition ensures that we only run this file when we run the script directly on the terminal. if some other modules, import this file, the condition will be false and flask application won't start.
+       6)debug=True is a optional parameter. This is for changing the environment to development.
+
+Errors:
+    404 Error:
+        If we try to navigate to a URL which our application doesn't understand, flask is going to response with 404 Error.
+    Function Name:
+        We can't have two functions with same name although they might be in seperate routes. 
+
+Note:
+    1) If we want a function to handle multiple decorators, we can just put two decorators next to each other(seperate lines).
+
+Serving up Static HTML Pages
+    1)In the function below the decorator routes(app.route("/)), we can use a method called render_template(imported from flask) to render any HTML page. 
+    2)We need to create a template directory at the same level of our main file. 
+    3)Inside the template directory, lets assume we make "about.html" file. In the render_template method, we have to pass the name of our html file as a string.("about.html") 
+    4)Note that we don't have to import any html files in out=r main file. Flask automatically searches for the html file inside the templates folder. 
+    5)If flask doesn't find templates folder, it will throw an error. Similarly, if we donot mention the correct file name, flask gives error. 
+
+Serving up Dynamic HTML Pages
+    1)If we wanted to pass any data to HTML page from our main file, we can do that very easily. in create_template method, as a second argument we can pass any data. 
+    2) Example: return create_template("file1.html", animal = ["cat", "pet"])
+    3) Now, inside file1.html we can access the variable animal and its value. 
+    4) Flask uses a templating engine called Jinja. It allows us to write code inside HTML files. 
+    
+    Jinja Syntax 
+        1) To access any variable passed in render_template method, we open two curly brackets. Eg: {{}}
+        2) Inside the curly brackets, we can refer to the variable. When we run the application, we will have the value of that variable.
+        3) If we want to use any loops, conditions etc (basically python syntax), we have to use {% for i in animal %} and {% endfor %}.
+        4) Between these two code blocks, we can have either any HTML content or we can access any extra variables passed in create_template. 
+    
+    Using a layout.html page:
+        1) We use a layout.html page (file name can be anything) where we write the code that is going to be repeated in 2 or more files. 
+        2) We identify the portion where we want to render specific content from each file and create a Code Block. 
+        3) This file can also be called (Parent File)
+        4)Then from another file(child file), we reference to the parent file's specific Code block and insert file specific content.
+
+    Use Bootstrap/Custom CSS:
+        1) We need to create a folder called static which will contain all our static files such as CSS, JavaScript. 
+        2) We can include cdn link of bootstrap into our layout file. We can also create our custom CSS and include in in layout file.  
+
+Create Form and validate Input.
+    SignUp Form
+        1) If we implemented our own custom registration Form, it could get really complicated to perform validation, check paswords , do some regex operation etc. 
+        2) The most popular library to create Forms is called WTForms.    
+        3) To install WtForms, use command: pip install flask-wtf. It also install another package called wtforms.
+        4) To create a Form, we have to create a class that extends FlaskForm(imported from flask_wtf).
+        5)We have to define attributes to the class which whill be the fields for the form.
+        6)each field will have a certain characteristics i.e. it could be a string field, a password field etc. 
+        7)We import different Fields from wtforms.
+        8)As the first parameter of the field, we pass the label. 
+        9)Then we pass all the validators that we want in the field.
+        We import validators from wtforms.valiators.
+    
+    Login form
+     1) All the steps are same. We only add a new Boolean Field to logIn the user for some additional time using browser's cookies.
+     2)We also change some fields to suit with Login Form.
+    
+    Note
+       1) We have to add a secret key. A secret key will protect from modifying cookies, cross site request, forgery attacks. To add a Secret Key, we go back to main file. 
+        2) We add a secret key as app.config["SECRET_KEY"] = <secret_key>.
+        3)We can get a secret key using a builtin method called secrets. In that module we use token_hex method and pass it the total bytes for secret key.
+        4) We will likely want to make this environment variable. We will do this later.
+
+    Creating Register Page:
+       1) We create a form in the register page. The method of the form will be "POST" and action will be "" which means that whenever we sybmit the post, request is going to go back to the same route that we are currently on. 
+       2)We use hidden tag method from the form instance that we passed to register.html. It adds CSRF token / Cross Site Request Forgery token. It is used to make our application more secure. 
+       3) Now we create a form using all the fields that we got from the instance. We also a method called url_for which points to a certain url 
+
+    SQL Alchemy(ORM Object Relational Mapper)
+        1) It allows us to access our database in easy to use object oriented way.
+        2) We can use different databases without changing our Python Code.
+        3) We can install sqlalchemy or flask-sqlalchemy. The second one provides some useful defaults for flask application.
+        4)Import SQLALCHEMy from flask-sqlalchemy.
+        5) Include a config : app.config["SQLALCHEMY_DATABASE_URL]. = "<location of database>"
+        6) For development we will be using sqlite databse as it is very easy to setup.
+        7)SO, the URI will be "sqlite:///site.db". Here, "///" means the relative path for current project directory.
+        8) Now, we have to create a database instance by passing our flask app.: db = SQLALCHEMY(app).
+        9) The great thing about SQLALCHEMY is that we can represent our database structure as Classes(Models).
+        10) Whenever we create a class to model a database structure, we extend the class with "db.Model". Here, db is the database instance.
+        11) Now define all the columns for the table.(Eg: For User Class, columns might be id, yusername, email, password etc.)
+        12) To add a user Instatntiate the class by passing all the fields as **kwargs.
+        13)Now perform a command: db.session.add(<user instance>)
+        14)Now commit the changes using the command db.session.commit()
+
+    SQL Alchemy Commands:
+        1) To get all users from Users table.: User,query.all()
+        2) To get a single user: User.query.first()
+        3)To filter by username: User.query.filter_by(username = "Sanjeev").all()
+        This returns the list of all the users. Even there was only 1 user we will get that user in a list.
+        To get only the first user user .first() instead of .all(). This will return a user without a list.
+        4)The result we get back is a user object. We can use . notation to access multiple fields. Eg: user1.id, user1.username etc.
+        5)To get the user with a ID 1: user.query.get(1)
+        6)To delete all the tables: db.drop_all()
+
+    Major File Structure Change
+        1) We changed the file structure to include a package called flaskblog. 
+        2) We have __init__.py file which we use to initialize all other files. 
+        3) Now, we just have a root level file called run.py which we use to import app instance from the package and run it. 
+
+    Add User and User Authentication
+        Password Hashing:
+            1) First, we install a password hashing library called bcrypt to hash all our user's password in database. 
+            2) Then we hash the password using method generate_password_hash(<password>)
+            3) We can check if the hashed password and normal string is true using method check_password_hash(<hashed_password>, <password>).
+            4)If we hash the same string using generate_password_hash(<password>), we will get a different passwordhash every time. 
+            5) So, if our hashed password gets leaked, noone can map it to any hashed table to identify the real password string.
+            6) We can only compare hashed password and real string password to see if both are true.  
+            7) The password we hash is in bytes format. If we want to convert it in String we append the method .decode("utf-8") in generate_password_hash(<password></password>)
+        Prevent User from registering with existing email
+            1) We have set up our database to handle users from signing up with same emails by setting our email field as a unique constraint.
+            2) However, we need to have a way to display a proper message to a user about the error.   
+            3) To do this, we create two functions in the User Model where we query the database to find out if the usernmae or email already exist. The
+            4) if exist, we raise validation error and send the message to the UI.
+        Handling User Logins:
+            1) We import another method called as Login Manager from a new package flask-login.  
+            2) Now we Instantiate the loginManager by passing app instance.
+            3)It makes easier to handle user login sessions by remembering logged In user.
+    
+    Redirect or Render Template:
+        1)When you reload a browser and see a message like Are you sure you are going to reload ? Datawill be lost.
+        2) That is because the browser is telling you that you are going to run a Post request.
+        3) Redirecting causes a browser to send a Get request. That doesnot cause the PopUp.
+
+    Why to use Pagination? 
+        1) If we have a lot of content to show. showing them at once 
+        may take a lot of time due to the transfer of resources
+        (html files, js file, imagefiles, etc. )
+        2) So, we implement pagination to only show a limited amount of data.
+        3) SQLAlchemy has Pagination method to pagianate the data. 
+        4) If we have to show more posts, we will pass a query parameter in the URl.  
