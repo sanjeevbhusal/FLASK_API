@@ -1,44 +1,51 @@
-from flask import Blueprint, request, abort, make_response
+from flask import Blueprint, request, abort,jsonify
 from api import db, bcrypt
-from api.schema import user_input, user_response
+from api.schema import user_input
 from api.models import User
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
-
+import jwt
+from datetime import datetime, timedelta
+from api import app
+from api.utils import generate_hash_password
 
 users = Blueprint("users", __name__)
-
+       
 @users.route("/register", methods = ["POST"])
 def register():
-    user_credintials = request.get_json()
+    data = request.get_json()
+    
     try:
-        desirialized_user = user_input.load(user_credintials)
-        hashed_pw = bcrypt.generate_password_hash(desirialized_user["password"]).decode("utf-8")
-        desirialized_user["password"] = hashed_pw
-        new_user = User(**desirialized_user)
-        db.session.add(new_user)
+        data = user_input.load(data)
+        hashed_pw = generate_hash_password(data["password"])
+        data["password"] = hashed_pw
+        user = User(**data)
+        db.session.add(user)
         db.session.commit()
     except ValidationError as err:
-        abort(404, description = err.messages)
+        return {"message" : err.messages}
     except IntegrityError as err :
-        abort(409, description = "The email already exists.")
+        return {"message" : "The Email is already Registered."}
          
-    serialized_user = user_input.dump(new_user)
-    response = make_response(serialized_user, 201)
-    
-    return response
+    return {"message" : "You are registered Succesfully."}
     
     
 @users.route("/login", methods = ["POST"])
 def login():
-    user_credintials = request.get_json()
-    user = User.query.filter_by(email=user_credintials["email"]).first()
+    auth = request.authorization
+    
+    if not auth or not auth.username or not auth.password:
+        return jsonify({"message" : "Please Enter both email and Password "})
+    
+    user = User.query.filter_by(email=auth.username).first()
     
     if not user :
-        abort(404, description = "Couldn't find your Moru Aaccount")
-    serialized_user = user_response.dump(user)
-    if not bcrypt.check_password_hash(serialized_user["password"], user_credintials["password"]) :
-        abort(404, description = "Please Enter Correct Password.")
+        return {"message": "Couldn't find your Moru Account"}, 404
+        
+    if not bcrypt.check_password_hash(user.password, auth.password) :
+        return {"message": "Please Enter Correct Password"}, 404
     
-    return serialized_user
+    token = jwt.encode({"id": user.id, "exp": datetime.utcnow() + timedelta(minutes= 30 )}, app.config["SECRET_KEY"])
+    
+    return {"token" : token}
     
