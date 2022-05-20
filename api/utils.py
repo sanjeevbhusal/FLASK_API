@@ -5,11 +5,8 @@ from api.models import User
 from functools import wraps
 
 def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        print(*args, *kwargs)
+    def wrapper(*args, **kwargs):
         token = None
-        
         if "access_token" in request.headers:
             token = request.headers["access_token"]
         else:
@@ -22,8 +19,9 @@ def token_required(f):
             return {"message" : 'Token is invalid'}, 401
         
         return f(user, *args, **kwargs)
-    
-    return decorated
+    # Renaming the function name:
+    wrapper.__name__ = f.__name__
+    return wrapper
 
 def generate_hash_password(password):
     return bcrypt.generate_password_hash(password).decode("utf-8")
