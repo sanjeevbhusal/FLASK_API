@@ -20,7 +20,6 @@ class PostResponse(Schema):
     content = fields.String(required=True)
     votes = fields.Integer(required=True)
     created_at = fields.DateTime(required=True)
-    # user_id = fields.Integer(required=True)
     user = fields.Nested(UserResponse)
     
 class VoteInput(Schema):

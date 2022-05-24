@@ -46,28 +46,6 @@ def get_posts():
         post.votes = votes
         post.user = User.query.get(post.user_id)
         posts.append(post)
- 
-    # sql_query = f'''
-    # select posts.*, COUNT(votes.post_id)
-    # as votes 
-    # from posts 
-    # LEFT JOIN 
-    # votes ON posts.id = votes.post_id 
-    # WHERE posts.title LIKE '%{search}%' 
-    # group by posts.id LIMIT {limit} OFFSET {skip}
-    # '''
-    # posts = db.session.execute(sql_query)
-    # posts_with_user = []  
-    
-    # for post in posts :
-    #     a = {}
-    #     a["id"] = post.id
-    #     a["title"] = post.title
-    #     a["content"] = post.content
-    #     a["created_at"] = post.created_at
-    #     a["votes"] = post.votes
-    #     a["user"] = User.query.get(post.user_id)
-    #     posts_with_user.append(a)
 
     posts = post_response.dump(posts, many=True)
          
@@ -78,7 +56,12 @@ def post(post_id):
     post = Post.query.get(post_id)
     if not post :
          return {"message" : "The Post doesnot exist."}
+     
+    query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.id == post_id).with_entities(Post, func.count(Vote.post_id)).first()
     
+    post, votes = query
+    post.votes = votes
+    post.user = User.query.get(post.user_id)
     post = post_response.dump(post)
     return {"message" : post}
 

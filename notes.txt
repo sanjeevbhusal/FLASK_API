@@ -158,3 +158,5 @@ Create Form and validate Input.
         2) So, we implement pagination to only show a limited amount of data.
         3) SQLAlchemy has Pagination method to pagianate the data. 
         4) If we have to show more posts, we will pass a query parameter in the URl.  
+
+    

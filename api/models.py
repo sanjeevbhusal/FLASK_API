@@ -2,6 +2,7 @@ from api import db
 from datetime import datetime
 from sqlalchemy.sql import func
 
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
