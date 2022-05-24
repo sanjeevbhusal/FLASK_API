@@ -13,7 +13,7 @@ class User(db.Model):
     # posts = db.relationship("Post", backref="user")
     
 class Post(db.Model):
-    __tablename__ = 'posts'
+    __tablename__ = "posts"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
     content = db.Column(db.Text, nullable=False)
