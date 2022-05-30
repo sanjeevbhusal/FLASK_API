@@ -7,6 +7,12 @@ from api.models import User
 from functools import wraps
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask_mail import Message
+from api.models import User, Post
+from api.schema import user_response
+
+def get_user_by_email(email):
+    return User.query.filter_by(email = email).first()
+    
 
 def token_required(f):
     def wrapper(*args, **kwargs):
@@ -18,7 +24,7 @@ def token_required(f):
         
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-            user = User.query.get(data["id"])
+            user = User.query.get(data["user_id"])
 
         except:
             return {"message" : 'Token is invalid'}, 401
@@ -39,8 +45,7 @@ def admin_token_required(f):
         
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-            print(data["id"])
-            user = User.query.get(data["id"])
+            user = User.query.get(data["user_id"])
 
         except:
             return {"message" : 'Token is invalid'}, 401
@@ -61,19 +66,15 @@ def get_reset_token(user_id):
     s = Serializer(current_app.config["SECRET_KEY"])
     return s.dumps({"user_id": user_id})
     
-def verify_reset_token(token, expires= 1800):
-    s = Serializer(current_app.config["SECRET_KEY"])
-    try :
-        user_id = s.loads(token, expires)["user_id"]
-        return User.query.get(user_id)
-    except:
+def verify_reset_token(token):
+    try:
+        return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
+    except Exception :
         return None
-    
     
 def send_email(user, token):
     msg = Message("Password Reset Form", sender="bhusalsanjeev@gmail.com", recipients= [user.email])
     msg.body = f"""Click this link to reset the password.
-    {url_for("users.check_token", token=token, _external=True )}
     """
     try:
         mail.send(msg)
@@ -81,6 +82,25 @@ def send_email(user, token):
         return None
     
     return "Message Sent"
+    
+def get_user_by_id(user_id):
+    return User.query.get(user_id)
+
+def serialize_user(user):
+    return user_response.dump(user)
+
+def get_serialized_user_by_id(user_id):
+    user = get_user_by_id(user_id)
+    return user_response.dump(user)
+
+def get_post_by_id(post_id):
+    return Post.query.get(post_id)
+
+def is_user_author(user_id, post_user_id):
+    return user_id == post_user_id
+
+def is_user_admin(user):
+    return user.is_admin
     
     
     

@@ -1,13 +1,13 @@
-from turtle import update
 from flask import Blueprint, request,jsonify
-from api import db
-from api.schema import post_input, post_response, vote_input, post_review_input 
-from api.models import Post, Vote, User
-from api.utils import token_required, admin_token_required
 from marshmallow import ValidationError
 from sqlalchemy import select, func, text
 from sqlalchemy.orm import load_only
 from marshmallow import ValidationError
+
+from api import db
+from api.models import Post, Vote, User
+from api.schema import post_input, post_response, vote_input, post_review_input 
+from api.utils import token_required, admin_token_required, get_post_by_id, is_user_author, is_user_admin
 
 
 posts = Blueprint("posts", __name__)
@@ -20,6 +20,7 @@ def new_post(user):
         data = post_input.load(data)
         data["user_id"] = user.id
         post = Post(**data)
+        
         db.session.add(post)
         db.session.commit()     
     except ValidationError as err:
@@ -60,27 +61,37 @@ def get_posts():
 
 @posts.route("/posts/<int:post_id>", methods=["GET"])
 def post(post_id):
-    post = Post.query.get(post_id)
+    post = get_post_by_id(post_id)
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
      
-    query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.id == post_id).with_entities(Post, func.count(Vote.post_id)).first()
+    post_with_votes = db.session.query(Post).\
+            join(Vote, Post.id == Vote.post_id, isouter=True).\
+            group_by(Post.id).\
+            filter(Post.id == post_id).\
+            with_entities(Post, func.count(Vote.post_id)).\
+            first()
     
-    post, votes = query
+    post, votes = post_with_votes
     post.votes = votes
     post.user = User.query.get(post.user_id)
+    
     post = post_response.dump(post)
-    return {"message" : post}, 200
+    return {"post" : post}, 200
 
 @posts.route("/posts/<int:post_id>/update", methods=["PUT"])
 @token_required
 def update_post(user, post_id):
-    post = Post.query.get(post_id)
+    post = get_post_by_id(post_id)
+    
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
      
-    if user.admin != "False" and post.user_id != user.id:
-        return {"message" : "You are not authorized to perform this operation."}
+    post_author = is_user_author(user.id, post.user_id)
+    admin = is_user_admin(user)
+     
+    if admin != "False" and not post_author:
+        return {"message" : "You are not authorized to perform this operation."}, 403
     
     try:
         data= request.get_json()
@@ -97,12 +108,16 @@ def update_post(user, post_id):
 @posts.route("/posts/<int:post_id>/delete", methods=["DELETE"])
 @token_required
 def delete_post(user, post_id):
-    post = Post.query.get(post_id)
-    if not post :
-         return {"message" : "The Post doesnot exist."}
+    post = get_post_by_id(post_id)
     
-    if user.admin != "False" and post.user_id != user.id:
-        return {"message" : "You are not authorized to perform this operation."}
+    if not post :
+         return {"message" : "The Post doesnot exist"}, 404
+     
+    post_author = is_user_author(user.id, post.user_id)
+    admin = is_user_admin(user)
+     
+    if admin != "False" and not post_author:
+        return {"message" : "You are not authorized to perform this operation."}, 403
     
     db.session.delete(post)
     db.session.commit()
@@ -139,19 +154,22 @@ def review_posts(user):
     return {"posts" : posts}
 
 
-@posts.route("/update_post_review/<int:post_id>", methods=["POST"])
+@posts.route("/update_post_reviewed/<int:post_id>", methods=["POST"])
 @admin_token_required
-def update_post_review(post_id):
+def update_post_reviewed(user,post_id):
     
+    post = get_post_by_id(post_id)
+    if not post :
+        return {"message": "The Post doesnot Exist."}, 400
+
     data = request.get_json()
+    
     try:
         data = post_review_input.load(data)
     except ValidationError as err :
         return {"message" : err.messages}, 401
     except Exception :
         return {"message" : "Rejecetd Reason is also required if Rejected is True"}, 401
-        
-    post = Post.query.get(post_id)
 
     if data.get("is_accepted"):
         post.is_accepted = True
