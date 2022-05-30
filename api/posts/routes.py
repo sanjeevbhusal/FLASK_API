@@ -1,12 +1,14 @@
+from turtle import update
 from flask import Blueprint, request,jsonify
 from api import db
-from api.schema import post_input, post_response, vote_input
+from api.schema import post_input, post_response, vote_input, post_review_input 
 from api.models import Post, Vote, User
-from api.utils import token_required
+from api.utils import token_required, admin_token_required
 from marshmallow import ValidationError
 from sqlalchemy import select, func, text
-import copy
 from sqlalchemy.orm import load_only
+from marshmallow import ValidationError
+
 
 posts = Blueprint("posts", __name__)
 
@@ -21,33 +23,38 @@ def new_post(user):
         db.session.add(post)
         db.session.commit()     
     except ValidationError as err:
-        return {"message" : err.messages}
+        return {"message" : err.messages}, 400
+    except Exception as err:
+        return {"message" : "The category you choosed isn't available."}, 400
         
-    return {"message" : 'Post has been Created.'}
-
+    return {"message" : 'Post has been Created'}
+    
 @posts.route("/posts", methods=["GET"])
 def get_posts():
-    limit = 8
-    skip = 0
-    search = ""
+    page = int(request.args.get("page")) if request.args.get("page") else 1
+    per_page = int(request.args.get("perpage")) if request.args.get("perpage") else 10
+    search =  request.args.get("search") if request.args.get("serach") else ""
+    category =  request.args.get("category") if request.args.get("category") else "General"
     
-    if request.args.get("limit"):
-        limit = request.args.get("limit")
-    if request.args.get("skip"):
-        skip = request.args.get("skip")
-    if request.args.get("search"):
-        search = request.args.get("search")
-  
-    query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.title.contains(search)).limit(limit).offset(skip). with_entities(Post, func.count(Vote.post_id)).all()
+    # query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.title.contains(search)).limit(limit).offset(skip). with_entities(Post, func.count(Vote.post_id)).all()
+      
+    posts = db.session.query(Post).\
+        join(Vote, Post.id == Vote.post_id, isouter=True).\
+        group_by(Post.id).\
+        filter(Post.category == category).\
+        order_by(Post.created_at).\
+        offset((page * per_page) - per_page).\
+        limit(per_page).\
+        with_entities(Post, func.count(Vote.post_id)).all()
     
-    posts = []
-    for collection in query :
+    posts_with_user = []
+    for collection in posts :
         post, votes = collection
         post.votes = votes
         post.user = User.query.get(post.user_id)
-        posts.append(post)
+        posts_with_user.append(post)
 
-    posts = post_response.dump(posts, many=True)
+    posts = post_response.dump(posts_with_user, many=True)
          
     return {"posts" : posts}
 
@@ -55,7 +62,7 @@ def get_posts():
 def post(post_id):
     post = Post.query.get(post_id)
     if not post :
-         return {"message" : "The Post doesnot exist."}
+         return {"message" : "The Post doesnot exist"}, 404
      
     query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.id == post_id).with_entities(Post, func.count(Vote.post_id)).first()
     
@@ -63,16 +70,16 @@ def post(post_id):
     post.votes = votes
     post.user = User.query.get(post.user_id)
     post = post_response.dump(post)
-    return {"message" : post}
+    return {"message" : post}, 200
 
 @posts.route("/posts/<int:post_id>/update", methods=["PUT"])
 @token_required
 def update_post(user, post_id):
     post = Post.query.get(post_id)
     if not post :
-         return {"message" : "The Post doesnot exist."}
+         return {"message" : "The Post doesnot exist"}, 404
      
-    if user.email != "bhusalsanjeev23@gmail.com" and post.user_id != user.id:
+    if user.admin != "False" and post.user_id != user.id:
         return {"message" : "You are not authorized to perform this operation."}
     
     try:
@@ -83,7 +90,7 @@ def update_post(user, post_id):
         post.content = data["content"]
         db.session.commit()
     except ValidationError as err :
-        return {"message" : err.messages}
+        return {"message" : err.messages}, 201
     return {"message" : "The Post has been Updated."}
 
 
@@ -94,7 +101,7 @@ def delete_post(user, post_id):
     if not post :
          return {"message" : "The Post doesnot exist."}
     
-    if user.email != "bhusalsanjeev23@gmail.com" and post.user_id != user.id:
+    if user.admin != "False" and post.user_id != user.id:
         return {"message" : "You are not authorized to perform this operation."}
     
     db.session.delete(post)
@@ -124,7 +131,38 @@ def vote(user):
         db.session.commit()
         return {"message": "The Vote has been created."}
         
+@posts.route("/review_posts", methods=["GET"])
+@admin_token_required
+def review_posts(user):
+    posts = Post.query.filter_by(is_reviewed= False)
+    posts = post_response.dump(posts, many=True)
+    return {"posts" : posts}
+
+
+@posts.route("/update_post_review/<int:post_id>", methods=["POST"])
+@admin_token_required
+def update_post_review(post_id):
+    
+    data = request.get_json()
+    try:
+        data = post_review_input.load(data)
+    except ValidationError as err :
+        return {"message" : err.messages}, 401
+    except Exception :
+        return {"message" : "Rejecetd Reason is also required if Rejected is True"}, 401
         
+    post = Post.query.get(post_id)
+
+    if data.get("is_accepted"):
+        post.is_accepted = True
+        #send accepted reason email to the user.
+    else:
+        post.rejected_reason = data["rejected_reason"]
+        #send rejected reason email to the user.
+    post.is_reviewed = True
+        
+    db.session.commit()   
+    return {"message" : "Post has been Updated"}, 200
         
         
     
