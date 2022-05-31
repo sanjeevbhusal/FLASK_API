@@ -109,6 +109,7 @@ def update_post(user, post_id):
     
         post.title = data["title"]
         post.content = data["content"]
+        post.category = data["category"]
         db.session.commit()
     except ValidationError as err :
         return {"message" : err.messages}, 201
