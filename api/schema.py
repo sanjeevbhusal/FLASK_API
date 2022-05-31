@@ -23,13 +23,13 @@ class UserResponse(UserSchema):
 class PostSchema(Schema):
     title = fields.String(required=True)
     content = fields.String(required=True)
-    category = fields.String(missing="General")
+    category = fields.String(required=True)
 
 class PostInput(PostSchema):
     
     @validates_schema
     def validate_category(self, data, **kwargs):
-        category = ["Latest Offer", "New Event", "Careers", "Stories", "Trending", "General"]
+        category = ["LatestOffer", "NewEvent", "Careers", "Stories", "Trending"]
         if data["category"] not in category :
             raise Exception()
             
