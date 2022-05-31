@@ -19,7 +19,7 @@ def register():
         user = get_user_by_email(data["email"]) 
         
         if user :
-            return {"message": "The User with this Email already exist."}, 400
+            return {"message": "The User with this Email already exist."}, 409
             
         data["password"] = generate_hash_password(data["password"])
         user = User(**data)
@@ -56,7 +56,7 @@ def login():
     if not bcrypt.check_password_hash(user.password, data["password"]) :
         return {"message": "Please Enter Correct Password"}, 401
     
-    token = jwt.encode({"user_id": user.id, "exp": datetime.utcnow() + timedelta(minutes= 30 )}, current_app.config["SECRET_KEY"])
+    token = jwt.encode({"user_id": user.id, "exp": datetime.utcnow() + timedelta(days= 365 )}, current_app.config["SECRET_KEY"])
     
     return {"token" : token}
 
@@ -120,6 +120,15 @@ def generate_token():
     send_email(user, token)
     return {"message" : "Token Sent"}
     
+@users.route("/verify_token/<token>", methods=["GET"])
+def verify_token(token):
+    token_data = verify_reset_token(token)
+    if not token_data :
+        return {"message" : "The Token is Invalid or Expired"}, 401
+    
+    user = get_serialized_user_by_id(token_data["user_id"])
+    return {"user": user}, 200
+    
 @users.route("/reset_password/", methods=["POST"])
 def reset_passsword():
     data = request.get_json()
@@ -134,15 +143,6 @@ def reset_passsword():
     
     return {"message" : "The password has been updated."}, 200
     
-    
-@users.route("/verify_token/<token>", methods=["GET"])
-def verify_token(token):
-    token_data = verify_reset_token(token)
-    if not token_data :
-        return {"message" : "The Token is Invalid or Expired"}, 401
-    
-    user = get_serialized_user_by_id(token_data["user_id"])
-    return {"user": user}, 200
     
     
     
