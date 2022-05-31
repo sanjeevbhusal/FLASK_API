@@ -34,12 +34,13 @@ def new_post(user):
 def get_posts():
     page = int(request.args.get("page")) if request.args.get("page") else 1
     per_page = int(request.args.get("perpage")) if request.args.get("perpage") else 10
-    search =  request.args.get("search") if request.args.get("serach") else ""
-    category =  request.args.get("category") if request.args.get("category") else "General"
+    search =  request.args.get("search") if request.args.get("search") else ""
+    category =  request.args.get("category") if request.args.get("category") else ""
     
     # query = db.session.query(Post).join(Vote, Post.id == Vote.post_id, isouter=True).group_by(Post.id).filter(Post.title.contains(search)).limit(limit).offset(skip). with_entities(Post, func.count(Vote.post_id)).all()
       
-    posts = db.session.query(Post).\
+    if category :
+        posts = db.session.query(Post).\
         join(Vote, Post.id == Vote.post_id, isouter=True).\
         group_by(Post.id).\
         filter(Post.category == category).\
@@ -47,6 +48,15 @@ def get_posts():
         offset((page * per_page) - per_page).\
         limit(per_page).\
         with_entities(Post, func.count(Vote.post_id)).all()
+    else:
+         posts = db.session.query(Post).\
+        join(Vote, Post.id == Vote.post_id, isouter=True).\
+        group_by(Post.id).\
+        order_by(Post.created_at).\
+        offset((page * per_page) - per_page).\
+        limit(per_page).\
+        with_entities(Post, func.count(Vote.post_id)).all()
+        
     
     posts_with_user = []
     for collection in posts :
