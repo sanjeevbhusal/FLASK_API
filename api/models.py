@@ -13,7 +13,7 @@ class User(db.Model):
     
     is_verified = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False) 
-    # is_active=  db.Column(db.Boolean, nullable=True, default=True)
+    is_active=  db.Column(db.Boolean, nullable=True, default=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default = func.now())
 
 class Post(db.Model):
