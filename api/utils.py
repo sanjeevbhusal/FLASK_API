@@ -111,7 +111,7 @@ Below is the rejected reason :
     mail.send(msg)
 
 def send_verify_email(email_id, link):
-    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
+    msg = Message("Thank You for creating your account. In order to get the most out of your account, please confirm your gmail account.", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
     msg.body = f"""Click this link to verify your email id.
     {link}
     """

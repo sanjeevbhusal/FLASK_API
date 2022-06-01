@@ -75,7 +75,7 @@ def update_single_post(user, post_id):
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
      
-    if user.is_admin != "False" and not post.author.id == user.id:
+    if user.is_admin == "False" and not post.author.id == user.id:
         return {"message" : "You are not authorized to perform this operation."}, 403
        
     post.title = data["title"]
@@ -95,7 +95,7 @@ def delete_single_post(user, post_id):
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
      
-    if user.is_admin != "False" and not post.author.id == user.id:
+    if user.is_admin == "False" and not post.author.id == user.id:
         return {"message" : "You are not authorized to perform this operation."}, 403
     
     db.session.delete(post)

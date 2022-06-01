@@ -56,6 +56,17 @@ def login():
     
     return {"token" : token}
 
+@users.route("/account", methods=["GET"])
+def get_all_users():
+    max = request.get_args("max")
+    
+    user = User.query.limit(max)
+    
+    user = user_response.dump(user, many=True)
+    
+    return {"users": user}, 200
+
+
 @users.route("/account/<int:user_id>", methods=["GET"])
 def get_user_account(user_id):
     
