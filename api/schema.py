@@ -1,55 +1,44 @@
 from marshmallow import Schema, fields, validates_schema, ValidationError
 
-class UserSchema(Schema):
+class User(Schema):
+    id = fields.Integer(required=True)
     username = fields.String(required=True)
     email = fields.Email(required=True)
-
-class UserInput(UserSchema):
-    password = fields.String(required=True)
-    is_admin = fields.Boolean(required=True)
-    
-class UserLoginInput(Schema):
-    username = fields.Email(required=True)
-    password = fields.String(required=True)
-    
-class UserUpdateInput(UserSchema):
-    password = fields.String(required=True)
-    
-class UserResponse(UserSchema):
-    id = fields.Integer(required=True)
     is_admin = fields.Boolean(required=True)
     created_at = fields.DateTime(required=True)
     
-class PostSchema(Schema):
+class Post(Schema):
+    id  = fields.Integer(required=True)
     title = fields.String(required=True)
     content = fields.String(required=True)
     category = fields.String(required=True)
-
-class PostInput(PostSchema):
+    created_at = fields.DateTime(required=True) 
     
-    @validates_schema
-    def validate_category(self, data, **kwargs):
-        category = ["LatestOffer", "NewEvent", "Careers", "Stories", "Trending"]
-        if data["category"] not in category :
-            raise Exception()
-            
-            
-class PostResponse(PostSchema):
+class Comment(Schema):
     id = fields.Integer(required=True)
-    votes = fields.Integer(required=True)
+    message = fields.String(required=True)
     created_at = fields.DateTime(required=True)
-    user = fields.Nested(UserResponse)
     
-class PostReviewInput(Schema):
-    is_accepted = fields.Boolean(required=True)
-    rejected_reason = fields.String()
+#***********************************************************************************    
+
+class UserRegister(Schema):
+    username = fields.String(required=True)
+    email = fields.Email(required=True)
+    password = fields.String(required=True)
+    is_admin = fields.Boolean(default=False)
     
-    @validates_schema
-    def validate_rejected_reason(self, data, **kwargs):
-        if data["is_accepted"] == False and "rejected_reason" not in data:
-            raise Exception()
-        
-class ResetUserPassword(Schema):
+class UserLogin(Schema):
+    username = fields.Email(required=True)
+    password = fields.String(required=True)
+       
+class UserUpdate(Schema):
+    username = fields.String(required=True)
+    
+class UserResponse(User):
+    posts = fields.List(fields.Nested(Post))
+    comments = fields.List(fields.Nested(Comment))
+    
+class ResetPassword(Schema):
     user_id = fields.Integer(required=True)
     password = fields.String(required=True)
     confirm_password = fields.String(required=True)
@@ -59,17 +48,72 @@ class ResetUserPassword(Schema):
         if data["password"] != data["confirm_password"] :
             raise ValidationError("Password and Confirm Password should be same")
     
+#*********************************************************************************** 
+    
+    
+class PostRegister(Schema):
+    title = fields.String(required=True)
+    content = fields.String(required=True)
+    category = fields.String(required=True)
+    
+    @validates_schema
+    def validate_category(self, data, **kwargs):
+        available_categories = ["LatestOffer", "NewEvent", "Careers", "Stories", "Trending"]
+        if data["category"] not in available_categories :
+            raise Exception()
+    
+class PostUpdate(PostRegister):
+    pass
+     
+class PostResponse(Post):
+    author = fields.Nested(User)
+    comments = fields.List(fields.Nested(Comment))
+     
+class PostReview(Schema):
+    is_accepted = fields.Boolean(required=True)
+    rejected_reason = fields.String()
+    
+    @validates_schema
+    def validate_rejected_reason(self, data, **kwargs):
+        if data["is_accepted"] == False and "rejected_reason" not in data:
+            raise Exception()
+    
+
 class VoteInput(Schema):
     post_id = fields.Integer(required=True)
+    
+    
+    
+#*********************************************************************************** 
 
+class CommentRegister(Schema):
+    message = fields.String(required=True)
+    post_id = fields.Integer(required=True)
+
+class CommentResponse(Comment):
+    author = fields.Nested(User)
+    # post  = fields.Nested(Post)
+   
+class CommentUpdate(Schema):
+    message = fields.String(required=True)
     
-user_input = UserInput()
+        
+            
+user_register = UserRegister()
+user_login = UserLogin()
+user_update = UserUpdate()
+reset_password = ResetPassword()
 user_response = UserResponse()
-post_input = PostInput()
+
+post_register = PostRegister()
+post_review = PostReview()
 post_response = PostResponse()
+post_update = PostRegister()
+
+
 vote_input = VoteInput()
-post_review_input = PostReviewInput()
-user_login_input = UserLoginInput()
-user_update_input = UserUpdateInput()
-reset_user_password = ResetUserPassword()
-    
+
+comment = Comment()
+comment_register = CommentRegister()
+comment_update = CommentUpdate()
+comment_response = CommentResponse()

@@ -7,10 +7,12 @@ from flask_mail import Mail
 from api.config import Config
 
 
+
 db = SQLAlchemy()
 migrate = Migrate()
 bcrypt = Bcrypt()
 mail = Mail()
+
 
 def create_app(config=Config):
     app = Flask(__name__) 

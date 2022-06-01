@@ -159,4 +159,5 @@ Create Form and validate Input.
         3) SQLAlchemy has Pagination method to pagianate the data. 
         4) If we have to show more posts, we will pass a query parameter in the URl.  
 
-    
+    1) To use flask_whooshalchemy first define a config to store all the indexes.
+    2) Then to implement search functonality on any table, give it a index.

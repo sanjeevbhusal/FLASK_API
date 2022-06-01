@@ -78,21 +78,45 @@ def generate_hash_password(password):
     return bcrypt.generate_password_hash(password).decode("utf-8")
 
 def get_reset_token(user_id):
-    return jwt.encode({"user_id": user_id, "exp": datetime.utcnow() + timedelta(days= 365 )}, current_app.config["SECRET_KEY"])
-    
+    return jwt.encode({"user_id": user_id, "exp": datetime.utcnow() + timedelta(minutes= 30 )}, current_app.config["SECRET_KEY"])
+   
+def get_verification_token(user_id):
+    return jwt.encode({"user_id": user_id, "exp": datetime.utcnow() + timedelta(minutes=30 )}, current_app.config["SECRET_KEY"])
+     
 def verify_reset_token(token):
     try:
         return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
     except Exception :
         return None
     
-def send_email(user, token):
-    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [user.email])
+def send_reset_password_email(email, token):
+    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email])
     msg.body = f"""Click this link to reset the password.
     {token}
     """
     mail.send(msg)
  
+def send_post_accepted_email(email_id):
+    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
+    msg.body = f"""Congratulations! Your Post has been accepted succesfully
+    """
+    mail.send(msg)
+
+def send_post_rejected_email(email_id, rejected_reason):
+    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
+    msg.body = f"""We are Sorry to inform you that your post has been rejected.! 
+Below is the rejected reason :
+{rejected_reason}
+    """
+    mail.send(msg)
+
+def send_verify_email(email_id, link):
+    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
+    msg.body = f"""Click this link to verify your email id.
+    {link}
+    """
+    mail.send(msg)
+
     # return "Message Sent"
     # # msg = Message('Hello from the other side!', sender =   'peter@mailtrap.io', recipients = ['paul@mailtrap.io'])
     # # msg.body = "Hey Paul, sending you this email from my Flask app, lmk if it works"

@@ -1,5 +1,6 @@
 import os
 
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,13 +13,7 @@ class Config:
     SECRET_KEY = os.environ["SECRET_KEY"]
     SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # MAIL_SERVER = "smtp.mailtrap.io"
-    # MAIL_PORT = 2525
-    # MAIL_USE_TLS = True 
-    # MAIL_USERNAME = os.environ["MAIL_USERNAME"]
-    # MAIL_PASSWORD = os.environ["MAIL_PASSWORD"]
-    # MAIL_DEFAULT_SENDER = os.environ["MAIL_USERNAME"]
-    # MAIL_USE_SSL = False
+
     MAIL_SERVER='smtp.mailtrap.io'
     MAIL_PORT = 2525
     MAIL_USERNAME = '7333153070b432'
