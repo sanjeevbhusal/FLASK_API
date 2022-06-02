@@ -144,7 +144,7 @@ def review_all_posts(user):
     posts = Post.query.filter_by(is_reviewed= False)
     posts = PostResponse(exclude=["comments"]).dump(posts, many=True)
     
-    return {"All posts" : posts}, 200
+    return {"posts" : posts}, 200
 
 @posts.route("/update_post_status/<int:post_id>", methods=["PUT"])
 @admin_token_required
