@@ -59,6 +59,12 @@ def get_single_post(post_id):
     
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
+     
+    for comment in post.comments :
+        print(dir(comment))
+        print(comment.user_id)
+        print(comment.author)
+        break
     
     post = PostResponse().dump(post)
     return {"post" : post}, 200

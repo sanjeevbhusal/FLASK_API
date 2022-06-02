@@ -18,6 +18,7 @@ class Comment(Schema):
     id = fields.Integer(required=True)
     message = fields.String(required=True)
     created_at = fields.DateTime(required=True)
+    author = fields.Nested(User, required=False)
     
 #***********************************************************************************    
 
