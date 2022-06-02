@@ -63,7 +63,7 @@ class PostRegister(Schema):
             raise Exception()
     
 class PostUpdate(PostRegister):
-    pass
+    author = fields.Nested(User)
      
 class PostResponse(Post):
     author = fields.Nested(User)
@@ -88,7 +88,6 @@ class VoteInput(Schema):
 
 class CommentRegister(Schema):
     message = fields.String(required=True)
-    post_id = fields.Integer(required=True)
 
 class CommentResponse(Comment):
     author = fields.Nested(User)

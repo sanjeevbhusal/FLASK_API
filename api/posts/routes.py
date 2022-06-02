@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 
 from api import db
 from api.models import Post, Vote, Comment
-from api.schema import post_response, vote_input, post_review, post_register, post_update, comment_register, comment_response, comment_update
+from api.schema import post_response, vote_input, post_review, post_register, post_update, comment_register, comment_response, comment_update, PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
 from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email
 from sqlalchemy import or_
 
@@ -18,18 +18,20 @@ def create_new_post(user):
     data = request.get_json()
     
     try:
-        data = post_register.load(data)
+        data = PostRegister().load(data)
         data["user_id"] = user.id
-        post = Post(**data)
+        new_post = Post(**data)
         
-        db.session.add(post)
+        db.session.add(new_post)
         db.session.commit()     
     except ValidationError as err:
         return {"message" : err.messages}, 400
     except Exception as err:
         return {"message" : "The category you choosed isn't available."}, 400
+    
+    post = PostResponse(exclude=["comments"]).dump(new_post)
         
-    return {"message" : 'Post has been Created'}, 201
+    return {"message" : 'Post has been Created', "post" : post}, 201
     
 @posts.route("/posts", methods=["GET"])
 def get_all_posts():
@@ -39,13 +41,13 @@ def get_all_posts():
     search =  request.args.get("search", "") 
     category =  request.args.get("category", "") 
     
-    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%'))]
+    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%')), Post.is_reviewed == True]
     if category :
         all_filters.append(Post.category == category)
     
     posts = Post.query.filter(*all_filters).paginate(page= page, per_page= per_page)
 
-    posts = post_response.dump(posts.items, many=True)
+    posts = PostResponse().dump(posts.items, many=True)
          
     return {"posts" : posts}, 200
 
@@ -57,7 +59,7 @@ def get_single_post(post_id):
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
     
-    post = post_response.dump(post)
+    post = PostResponse().dump(post)
     return {"post" : post}, 200
 
 @posts.route("/posts/<int:post_id>", methods=["PUT"])
@@ -66,7 +68,7 @@ def update_single_post(user, post_id):
      
     try:
         data= request.get_json()
-        data = post_update.load(data)
+        data = PostUpdate().load(data)
     except ValidationError as err :
         return {"message" : err.messages}, 201
     
@@ -83,8 +85,10 @@ def update_single_post(user, post_id):
     post.category = data["category"]
     
     db.session.commit()
+    
+    updated_post = PostUpdate().dump(post)
 
-    return {"message" : "The Post has been Updated."}, 200
+    return {"message" : updated_post}, 200
 
 @posts.route("/posts/<int:post_id>", methods=["DELETE"])
 @token_required
@@ -101,46 +105,39 @@ def delete_single_post(user, post_id):
     db.session.delete(post)
     db.session.commit()
 
-    return {"message" : 'Deleted Succesfully.'}, 200
+    return {"message" : f'The post created by user with email {post.author.email} has been deleted Succesfully.'}, 200
     
-@posts.route("/vote", methods=["POST"])
+@posts.route("/vote/<int:post_id>", methods=["POST"])
 @token_required
-def vote(user):
+def create_vote(user, post_id):
     
-    data = request.get_json()
-    
-    try:
-        data = vote_input.load(data)
-    except ValidationError as err :
-        return {"message", err.messages}, 400
-    
-    post = Post.query.filter_by(id = data["post_id"]).first()
+    post = Post.query.filter_by(id = post_id).first()
     
     if not post :
-        return {"message": "The Post doesnot exist."}, 404
+        return {"message": f"The Post with id of {post_id} doesnot exist."}, 404
     
     #if user has already voted on this post, remove the vote.
-    vote = Vote.query.filter_by(post_id = data["post_id"], user_id = user.id).first()
+    vote = Vote.query.filter_by(post_id = post_id, user_id = user.id).first()
     if vote :
         db.session.delete(vote)
         db.session.commit()
         
-        return {"message": "The Vote has been deleted."}
+        return {"message": f"Vote by user {user.email} on post with id {post_id} has been deleted."}
     else:
-        new_vote = Vote(user_id = user.id, post_id = data["post_id"]) 
+        new_vote = Vote(user_id = user.id, post_id = post_id) 
         db.session.add(new_vote)
         db.session.commit()
         
-        return {"message": "The Vote has been created."}
+        return {"message": f"Vote by user {user.email} on post with id {post_id} has been recorded."}
         
 @posts.route("/review_posts", methods=["GET"])
 @admin_token_required
 def review_all_posts(user):
     
     posts = Post.query.filter_by(is_reviewed= False)
-    posts = post_response.dump(posts, many=True)
+    posts = PostResponse(exclude=["comments"]).dump(posts, many=True)
     
-    return {"posts" : posts}, 200
+    return {"All posts" : posts}, 200
 
 @posts.route("/update_post_status/<int:post_id>", methods=["PUT"])
 @admin_token_required
@@ -149,23 +146,23 @@ def update_post_status(user,post_id):
     data = request.get_json()
     
     try:
-        data = post_review.load(data)
+        data = PostReview().load(data)
     except ValidationError as err :
         return {"message" : err.messages}, 401
-    # except Exception :
-    #     return {"message" : "Rejecetd Reason is also required if The Post has been Rejeted"}, 401
+    except Exception :
+        return {"message" : "Rejecetd Reason is also required if The Post has been Rejeted"}, 401
 
     post = get_post_by_id(post_id)
     
     if not post :
-        return {"message": "The Post doesnot Exist."}, 404
+        return {"message": f"The Post with an id of {post_id} doesnot Exist."}, 404
     
     if data.get("is_accepted"):
         post.is_accepted = True
-        send_post_accepted_email(post.author.email)
+        send_post_accepted_email(post)
     else:
         post.rejected_reason = data["rejected_reason"]
-        send_post_rejected_email(post.author.email, data["rejected_reason"])
+        send_post_rejected_email(post)
     
     post.is_reviewed = True
     
@@ -173,27 +170,29 @@ def update_post_status(user,post_id):
     
     return {"message" : "Post has been Updated"}, 200
         
-@posts.route("/comments", methods=["POST"])
+@posts.route("/comments/<int:post_id>", methods=["POST"])
 @token_required
-def add_comment(user):
+def add_comment(user, post_id):
+    data = request.get_json()
+    
     try:
-        comment = comment_register.load(data)
+        comment = CommentRegister().load(data)
     except ValidationError as err :
         return {"message": err.messages}, 400
     
-    data = request.get_json()
-    
-    post = Post.query.get(data["post_id"])
+    post = Post.query.get(post_id)
     
     if not post :
-        return {"message": "The Post doesnot exist."}, 400
+        return {"message": f"The Post with an id of {post_id} doesnot exist."}, 400
     
-    comment = Comment(**data, user_id = user.id)
+    comment = Comment(**comment, user_id = user.id, post_id = post_id)
     
     db.session.add(comment)
     db.session.commit()
     
-    return {"message" : "Success"}, 201
+    comment = CommentResponse(exclude=["author"]).dump(comment)
+    
+    return {"comment" : comment}, 201
     
            
 @posts.route("/comments/<int:post_id>", methods=["GET"])
@@ -202,26 +201,25 @@ def get_comment(post_id):
     post = Post.query.get(post_id)
     
     if not post :
-        return {"message": "The Post doesnot exist."}, 400
+        return {"message": f"The Post with an id of {post_id} doesnot exist."}, 400
     
-    comments = comment_response.dump(post.comments, many=True)
+    comments = CommentResponse().dump(post.comments, many=True)
     
     return {"comments" : comments}, 200
 
 @posts.route("/comments/<int:comment_id>", methods=["PUT"])
 @token_required
 def update_comment(user, comment_id):
+    data = request.get_json()
     try:
-        comment_update.load(data)
+        CommentUpdate().load(data)
     except ValidationError as err :
         return {"message" : err.messages}, 400
-    
-    data = request.get_json()
     
     comment = Comment.query.get(comment_id)
     
     if not comment :
-        return {"message" : "Comment doesnot exist"}, 404
+        return {"message" : f"Comment with an id of {comment_id} doesnot exist"}, 404
     
     if user.is_admin == False and user.id != comment.author.id :
          return {"message" : "You can only update your own comment"}, 403
@@ -229,7 +227,9 @@ def update_comment(user, comment_id):
     comment.message = data["message"]
     db.session.commit()
     
-    return {"message" : "Updated Succesfully."}, 200
+    comment = CommentResponse(exclude=["author"]).dump(comment)
+    
+    return {"updated comment" : comment }, 200
     P
 
 @posts.route("/comments/<int:comment_id>", methods=["DELETE"])
@@ -247,7 +247,7 @@ def delete_comment(user, comment_id):
     db.session.delete(comment)
     db.session.commit()
     
-    return {"message" : "Deleted Succesfully"}, 200
+    return {"message" : f"Comment with an id of {comment_id } has been Deleted Succesfully"}, 200
     
         
     

@@ -103,17 +103,33 @@ If you didn't requested to reset your password, kindly ignore this email.
 """
     mail.send(msg)
  
-def send_post_accepted_email(email_id):
-    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
-    msg.body = f"""Congratulations! Your Post has been accepted succesfully
-    """
+def send_post_accepted_email(post):
+    msg = Message("Regarding the recent article you wrote on blog.moru.com.", sender="noreply@gmail.com", recipients= [post.author.email])
+    msg.body = f"""
+Congratulations {post.author.username}, 
+Recently, you wrote a Article titled {post.title}. Our team has carefully reviewed the Article and we are more than happy to let you know that your Article has been accepted. 
+ 
+Thank You for sharing your knowledge with the world.
+Keep Writing!!!
+
+Best Wishes from MORU Digital Wallet.
+"""
     mail.send(msg)
 
-def send_post_rejected_email(email_id, rejected_reason):
-    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
-    msg.body = f"""We are Sorry to inform you that your post has been rejected.! 
-Below is the rejected reason :
-{rejected_reason}
+def send_post_rejected_email(post):
+    msg = Message("Regarding the recent article you wrote on blog.moru.com.", sender="noreply@gmail.com", recipients= [post.author.email])
+    msg.body = f"""
+Dear {post.author.username}, 
+Recently, you wrote a Article titled {post.title}. Our team has carefully reviewed the Article and we feel very sorry to inform you that we have decided not to go forward with your Article. 
+
+We receive a lot of Article requests and we try our best to select those which provide a great value to our readers. Below is the reason, we decided not to accept your article.
+
+{post.rejected_reason}
+ 
+Don't let this rejection stop you from writing articles. 
+Keep Writing!!!
+
+Best Wishes from MORU Digital Wallet.
     """
     mail.send(msg)
 

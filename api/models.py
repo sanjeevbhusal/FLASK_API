@@ -1,3 +1,4 @@
+from sqlalchemy import null
 from api import db
 from sqlalchemy.sql import func
 from flask import current_app
@@ -41,8 +42,8 @@ class Comment(db.Model):
     id = db.Column(db.Integer, nullable=False, primary_key=True)
     message = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default= func.now())
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"),)
-    post_id = db.Column(db.ForeignKey("posts.id", ondelete="CASCADE"),)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
+    post_id = db.Column(db.ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, server_default= func.now())
     
 class Vote(db.Model):
     __tablename__ = "votes"
