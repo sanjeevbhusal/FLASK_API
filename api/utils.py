@@ -77,7 +77,7 @@ def admin_token_required(f):
 def generate_hash_password(password):
     return bcrypt.generate_password_hash(password).decode("utf-8")
 
-def get_reset_token(user_id):
+def get_password_reset_token(user_id):
     return jwt.encode({"user_id": user_id, "exp": datetime.utcnow() + timedelta(minutes= 30 )}, current_app.config["SECRET_KEY"])
    
 def get_verification_token(user_id):
@@ -90,10 +90,17 @@ def verify_reset_token(token):
         return None
     
 def send_reset_password_email(email, token):
-    msg = Message("Password Reset Form", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email])
-    msg.body = f"""Click this link to reset the password.
-    {token}
-    """
+    msg = Message("Password Reset Form", sender="noreply@gmail.com", recipients= [email])
+    msg.body = f"""
+
+Click on the link below to verify your account
+
+The link expires in 30 minutes.
+
+{token}
+
+If you didn't requested to reset your password, kindly ignore this email.
+"""
     mail.send(msg)
  
 def send_post_accepted_email(email_id):
@@ -111,9 +118,16 @@ Below is the rejected reason :
     mail.send(msg)
 
 def send_verify_email(email_id, link):
-    msg = Message("Thank You for creating your account. In order to get the most out of your account, please confirm your gmail account.", sender="sanjeev2111071@iimscollege.edu.np", recipients= [email_id])
-    msg.body = f"""Click this link to verify your email id.
-    {link}
+    msg = Message("Verify your email Account", sender="noreply@gmail.com", recipients= [email_id])
+    msg.body = f"""Thank You for creating your account. In order to get the most out of your account, please confirm your account
+    
+Click on the link below to verify your account
+
+The link expires in 30 minutes.
+
+{link}
+    
+This is a automated generated email. Please donot reply this email.
     """
     mail.send(msg)
 

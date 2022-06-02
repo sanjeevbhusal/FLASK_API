@@ -39,7 +39,7 @@ class UserResponse(User):
     comments = fields.List(fields.Nested(Comment))
     
 class ResetPassword(Schema):
-    user_id = fields.Integer(required=True)
+    token = fields.String(required=True)
     password = fields.String(required=True)
     confirm_password = fields.String(required=True)
     
@@ -97,8 +97,7 @@ class CommentResponse(Comment):
 class CommentUpdate(Schema):
     message = fields.String(required=True)
     
-        
-            
+                
 user_register = UserRegister()
 user_login = UserLogin()
 user_update = UserUpdate()
