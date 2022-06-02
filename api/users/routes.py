@@ -104,8 +104,10 @@ def update_user(user):
 def delete_user(user, user_id):
     if user.is_admin == False and user.id != user_id :
         return {"message" : "You cannot delete other's account."}, 403
-     
+ 
     user = User.query.get(user_id)  
+    if not user :
+        return {"message": f"The user with id {user_id} doesnot exist."}, 404
     
     db.session.delete(user)
     db.session.commit()
