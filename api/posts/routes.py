@@ -126,19 +126,21 @@ def create_vote(user, post_id):
     if not post :
         return {"message": f"The Post with id of {post_id} doesnot exist."}, 404
     
+    all_votes = len(Vote.query.all())
+    
     #if user has already voted on this post, remove the vote.
     vote = Vote.query.filter_by(post_id = post_id, user_id = user.id).first()
     if vote :
         db.session.delete(vote)
         db.session.commit()
         
-        return {"message": f"Vote by user {user.email} on post with id {post_id} has been deleted."}
+        return {"votes": all_votes - 1, "hasvoted" : False}
     else:
         new_vote = Vote(user_id = user.id, post_id = post_id) 
         db.session.add(new_vote)
         db.session.commit()
         
-        return {"message": f"Vote by user {user.email} on post with id {post_id} has been recorded."}
+        return {"votes": all_votes + 1, "hasvoted" : True}
         
 @posts.route("/review_posts", methods=["GET"])
 @admin_token_required
