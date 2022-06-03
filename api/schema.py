@@ -51,6 +51,11 @@ class ResetPassword(Schema):
     
 #*********************************************************************************** 
     
+class VoteInput(Schema):
+    post_id = fields.Integer(required=True)
+    
+class VoteResponse(VoteInput):
+    user_id = fields.Integer(required=True)
     
 class PostRegister(Schema):
     title = fields.String(required=True)
@@ -69,6 +74,7 @@ class PostUpdate(PostRegister):
 class PostResponse(Post):
     author = fields.Nested(User)
     comments = fields.List(fields.Nested(Comment))
+    votes = fields.List(fields.Nested(VoteResponse))
      
 class PostReview(Schema):
     is_accepted = fields.Boolean(required=True)
@@ -80,8 +86,8 @@ class PostReview(Schema):
             raise Exception()
     
 
-class VoteInput(Schema):
-    post_id = fields.Integer(required=True)
+
+    
     
     
     

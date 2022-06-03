@@ -47,6 +47,9 @@ def get_all_posts():
         all_filters.append(Post.category == category)
     
     posts = Post.query.filter(*all_filters).paginate(page= page, per_page= per_page)
+    
+    for post in posts.items :
+        print(len(post.votes))
 
     posts = PostResponse().dump(posts.items, many=True)
          
