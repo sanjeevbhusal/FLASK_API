@@ -102,6 +102,13 @@ def update_user(user):
 @users.route("/delete_user/<int:user_id>", methods=["DELETE"])
 @token_required
 def delete_user(user, user_id):
+    
+    user = get_user_by_id(user_id)
+    
+    if not user :
+        return {"message" : f"User with email {user_id} doesnot exist."}, 404
+    
+    
     if user.is_admin == False and user.id != user_id :
         return {"message" : "You cannot delete other's account."}, 403
  

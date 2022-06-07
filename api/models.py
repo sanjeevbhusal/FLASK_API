@@ -16,8 +16,8 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, nullable=False, default=False) 
     is_active=  db.Column(db.Boolean, nullable=True, default=True)
     
-    posts = db.relationship("Post", backref="author")
-    comments = db.relationship("Comment", backref="author")
+    posts = db.relationship("Post", backref="author", passive_deletes=True)
+    comments = db.relationship("Comment", backref="author", passive_deletes=True)
 
 class Post(db.Model):
     __tablename__ = "posts"
@@ -33,8 +33,8 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, server_default = func.now())
     
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, )
-    comments = db.relationship("Comment", backref="post")
-    votes = db.relationship("Vote")
+    comments = db.relationship("Comment", backref="post", passive_deletes=True)
+    votes = db.relationship("Vote", passive_deletes=True)
     
 class Comment(db.Model):
     __tablename__ = "comments"
@@ -43,7 +43,7 @@ class Comment(db.Model):
     message = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default= func.now())
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
-    post_id = db.Column(db.ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, server_default= func.now())
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
     
 class Vote(db.Model):
     __tablename__ = "votes"
