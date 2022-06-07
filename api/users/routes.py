@@ -82,9 +82,12 @@ def get_user_account(user_id):
     
     return {"user": user}, 200
 
-@users.route("/update_user", methods=["PUT"])
+@users.route("/update_user/<int:user_id>", methods=["PUT"])
 @token_required
-def update_user(user):
+def update_user(user, user_id):
+    
+    if user.is_admin == False and user.id != user_id :
+        return {"message" : "You cannot update other's account."}, 403
     
     data = request.get_json()
     

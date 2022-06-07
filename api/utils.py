@@ -44,7 +44,7 @@ def token_required(f):
             user = User.query.get(data["user_id"])
 
         except:
-            return {"message" : 'Token is invalid'}, 401
+            return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
         
         return f(user, *args, **kwargs)
     # Renaming the function name:
