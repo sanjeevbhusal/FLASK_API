@@ -6,7 +6,7 @@ from api import db
 from api.models import Post, Vote, Comment
 from api.schema import post_response, vote_input, post_review, post_register, post_update, comment_register, comment_response, comment_update, PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
 from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 
 
 posts = Blueprint("posts", __name__)
@@ -46,7 +46,7 @@ def get_all_posts():
         all_filters.append(Post.category == category)
     
     # posts = Post.query.filter(*all_filters).paginate(page= page, per_page= per_page)
-    posts = Post.query.filter(*all_filters)
+    posts = Post.query.filter(*all_filters).order_by(Post.created_at.desc())
 
     posts = PostResponse().dump(posts, many=True)
          
