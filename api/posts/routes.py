@@ -1,11 +1,14 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
+import os
+import base64
 from marshmallow import ValidationError
 from marshmallow import ValidationError
+
 
 from api import db
 from api.models import Post, Vote, Comment
 from api.schema import post_response, vote_input, post_review, post_register, post_update, comment_register, comment_response, comment_update, PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
-from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email
+from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email, save_file, allowed_image
 from sqlalchemy import or_, desc
 
 
@@ -15,11 +18,18 @@ posts = Blueprint("posts", __name__)
 @token_required
 def create_new_post(user):
 
-    data = request.get_json()
+    data = request.form
+    image = request.files.get("image")
+
+    if not allowed_image(image):
+        return {"message":"Your image extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
     
+    file_name = save_file(image)
+
     try:
         data = PostRegister().load(data)
         data["user_id"] = user.id
+        data["file_name"] = file_name
         new_post = Post(**data)
         
         db.session.add(new_post)
@@ -41,7 +51,7 @@ def get_all_posts():
     search =  request.args.get("search", "") 
     category =  request.args.get("category", "") 
     
-    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%')), Post.is_reviewed == True]
+    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%'))]
     if category :
         all_filters.append(Post.category == category)
     
@@ -59,14 +69,15 @@ def get_single_post(post_id):
     
     if not post :
          return {"message" : "The Post doesnot exist"}, 404
-     
-    for comment in post.comments :
-        print(dir(comment))
-        print(comment.user_id)
-        print(comment.author)
-        break
     
     post = PostResponse().dump(post)
+    
+    if post["file_name"] :
+        image_name = os.path.join(current_app.root_path, "static/blog_pictures",  post["file_name"])
+        with open(image_name, "rb") as image_file:
+            # converts image to base 64.
+            post["file_name"] = base64.b64encode(image_file.read()).decode("utf-8")
+    
     return {"post" : post}, 200
 
 @posts.route("/posts/<int:post_id>", methods=["PUT"])

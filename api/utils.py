@@ -4,6 +4,8 @@ from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask_mail import Message
 from datetime import datetime, timedelta
 import jwt
+import os
+import secrets
 
 from api import bcrypt, mail
 from api.schema import user_response
@@ -153,10 +155,29 @@ This is a automated generated email. Please donot reply this email.
     # # mail.send(msg)
     # # return "Message sent!"
     
+def save_file(file):
+    if not file :
+        return None
+     
+    random_name = secrets.token_hex(8)
     
+    _, f_exe = os.path.splitext(file.filename)
+    filename = random_name + f_exe
     
+    image_path = os.path.join(current_app.root_path, "static/blog_pictures")
+    
+    fout = open(image_path + "/" + filename, "wb")
+    fout.write(file.read())
+    
+    return filename
 
+
+def allowed_image(image):
+    allowed_extensions = ["PNG", "JPEG", "JPG"]
     
+    f_exe = image.filename.split(".")[1].upper()
     
+    if f_exe in allowed_extensions:
+        return True
+    return False
     
-        

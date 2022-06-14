@@ -75,6 +75,7 @@ class PostResponse(Post):
     author = fields.Nested(User)
     comments = fields.List(fields.Nested(Comment))
     votes = fields.List(fields.Nested(VoteResponse))
+    file_name= fields.String()
      
 class PostReview(Schema):
     is_accepted = fields.Boolean(required=True)
