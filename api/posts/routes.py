@@ -12,6 +12,11 @@ from sqlalchemy import or_, desc
 
 posts = Blueprint("posts", __name__)
 
+@posts.route("/abc", methods=["POST"])
+def abc():
+    print(request.files)
+    print(request.form)
+
 @posts.route("/posts/new", methods=["POST"])
 @token_required
 def create_new_post(user):
