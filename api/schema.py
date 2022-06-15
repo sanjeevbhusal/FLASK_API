@@ -63,19 +63,22 @@ class BytesField(fields.Field) :
         if data is None :
             return
         if not isinstance(data, bytes) :
-            return ValidationError()
+            raise ValidationError("Not a Valid Image")
     
 class PostRegister(Schema):
     title = fields.String(required=True)
     content = fields.String(required=True)
     category = fields.String(required=True)
-    image = BytesField(required=True)
+    image = BytesField()
     
     @validates_schema
     def validate_category(self, data, **kwargs):
         available_categories = ["LatestOffer", "NewEvent", "Careers", "Stories", "Trending"]
         if data["category"] not in available_categories :
             raise Exception()
+    
+        
+    
     
 class PostUpdate(PostRegister):
     author = fields.Nested(User)

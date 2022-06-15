@@ -15,16 +15,14 @@ posts = Blueprint("posts", __name__)
 @posts.route("/posts/new", methods=["POST"])
 @token_required
 def create_new_post(user):
-    import pdb; pdb.set_trace()
-    print(request.form)
 
     data = request.form
-    # image = request.files.get("image") 
 
     try:
+        # import pdb; pdb.set_trace()
         data = PostRegister().load(data)
         data["user_id"] = user.id
-        image = data["image"]
+        image = data.get("image")
         file_name = None
         
         if image:
