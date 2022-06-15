@@ -17,6 +17,7 @@ posts = Blueprint("posts", __name__)
 def create_new_post(user):
 
     data = request.form
+    print(data)
     image = request.files.get("image")
     print(image)
 
