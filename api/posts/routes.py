@@ -17,20 +17,21 @@ posts = Blueprint("posts", __name__)
 def create_new_post(user):
 
     data = request.form
+    image = request.files.get("image")
+    print(image)
 
     try:
         # import pdb; pdb.set_trace()
         data = PostRegister().load(data)
         data["user_id"] = user.id
-        image = data.get("image")
-        file_name = None
+        data["file_name"] = None
         
         if image:
             if not allowed_image(image):
-                return {"message":"Your image extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
-            file_name = save_file(image)
-
-        data["file_name"] = file_name
+                return {"message":"Your extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
+            filename = save_file(image)
+            data["file_name"] = filename
+        
         new_post = Post(**data)
         
         db.session.add(new_post)

@@ -173,11 +173,15 @@ def save_file(file):
 
 
 def allowed_image(image):
+    
+    #check if image has the valid extension.
+    
     allowed_extensions = ["PNG", "JPEG", "JPG"]
     
-    f_exe = image.filename.split(".")[1].upper()
+    image_extension = image.filename.split(".")[1]
     
-    if f_exe in allowed_extensions:
-        return True
-    return False
+    if image_extension not in allowed_extensions  :
+        return False
+    
+    
     

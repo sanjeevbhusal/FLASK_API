@@ -69,7 +69,7 @@ class PostRegister(Schema):
     title = fields.String(required=True)
     content = fields.String(required=True)
     category = fields.String(required=True)
-    image = BytesField()
+    # image = BytesField()
     
     @validates_schema
     def validate_category(self, data, **kwargs):
