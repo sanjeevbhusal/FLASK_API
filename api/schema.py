@@ -57,10 +57,19 @@ class VoteInput(Schema):
 class VoteResponse(VoteInput):
     user_id = fields.Integer(required=True)
     
+    
+class BytesField(fields.Field) :
+    def _validate(self, data):
+        if data is None :
+            return
+        if not isinstance(data, bytes) :
+            return ValidationError()
+    
 class PostRegister(Schema):
     title = fields.String(required=True)
     content = fields.String(required=True)
     category = fields.String(required=True)
+    image = BytesField(required=True)
     
     @validates_schema
     def validate_category(self, data, **kwargs):

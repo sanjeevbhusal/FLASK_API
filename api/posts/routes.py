@@ -1,13 +1,11 @@
-from flask import Blueprint, request, current_app, url_for
-import os
-import base64
+from flask import Blueprint, request, url_for
 from marshmallow import ValidationError
 from marshmallow import ValidationError
 
 
 from api import db
 from api.models import Post, Vote, Comment
-from api.schema import post_response, vote_input, post_review, post_register, post_update, comment_register, comment_response, comment_update, PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
+from api.schema import PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
 from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email, save_file, allowed_image
 from sqlalchemy import or_, desc
 
@@ -17,13 +15,16 @@ posts = Blueprint("posts", __name__)
 @posts.route("/posts/new", methods=["POST"])
 @token_required
 def create_new_post(user):
+    import pdb; pdb.set_trace()
+    print(request.form)
 
     data = request.form
-    image = request.files.get("image") 
+    # image = request.files.get("image") 
 
     try:
         data = PostRegister().load(data)
         data["user_id"] = user.id
+        image = data["image"]
         file_name = None
         
         if image:
