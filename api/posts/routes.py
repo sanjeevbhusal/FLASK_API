@@ -14,7 +14,11 @@ posts = Blueprint("posts", __name__)
 
 @posts.route("/abc", methods=["POST"])
 def abc():
-    print(request.files)
+    file = request.files.get("file")
+    print(dir(file))
+    print(file.read())
+    
+    print("FORM")
     print(request.form)
 
 @posts.route("/posts/new", methods=["POST"])
