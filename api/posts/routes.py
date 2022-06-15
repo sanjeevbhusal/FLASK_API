@@ -18,8 +18,8 @@ def create_new_post(user):
 
     data = request.form
     print(data)
-    image = request.files.get("image")
     print(request.files)
+    print(request.content_type)
 
     try:
         # import pdb; pdb.set_trace()
