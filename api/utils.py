@@ -166,8 +166,8 @@ def save_file(file):
     
     image_path = os.path.join(current_app.root_path, "static/blog_pictures")
     
-    fout = open(image_path + "/" + filename, "wb")
-    fout.write(file.read())
+    with open(image_path + "/" + filename, "wb") as f:
+        f.write(file.read())
     
     return filename
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, url_for
 import os
 import base64
 from marshmallow import ValidationError
@@ -19,16 +19,18 @@ posts = Blueprint("posts", __name__)
 def create_new_post(user):
 
     data = request.form
-    image = request.files.get("image")
-
-    if not allowed_image(image):
-        return {"message":"Your image extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
-    
-    file_name = save_file(image)
+    image = request.files.get("image") 
 
     try:
         data = PostRegister().load(data)
         data["user_id"] = user.id
+        file_name = None
+        
+        if image:
+            if not allowed_image(image):
+                return {"message":"Your image extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
+            file_name = save_file(image)
+
         data["file_name"] = file_name
         new_post = Post(**data)
         
@@ -46,8 +48,8 @@ def create_new_post(user):
 @posts.route("/posts", methods=["GET"])
 def get_all_posts():
     
-    # page = request.args.get("page", 1, type=int) 
-    # per_page = request.args.get("perpage", 10, type=int)
+    page = request.args.get("page", 1, type=int) 
+    per_page = request.args.get("perpage", 10, type=int)
     search =  request.args.get("search", "") 
     category =  request.args.get("category", "") 
     
@@ -59,6 +61,10 @@ def get_all_posts():
     posts = Post.query.filter(*all_filters).order_by(Post.created_at.desc())
 
     posts = PostResponse().dump(posts, many=True)
+    
+    for post in posts :
+        if post["file_name"]:
+            post["file_name"] = url_for("static", filename="blog_pictures/" + post["file_name"], _external=True)
          
     return {"posts" : posts}, 200
 
@@ -73,11 +79,8 @@ def get_single_post(post_id):
     post = PostResponse().dump(post)
     
     if post["file_name"] :
-        image_name = os.path.join(current_app.root_path, "static/blog_pictures",  post["file_name"])
-        with open(image_name, "rb") as image_file:
-            # converts image to base 64.
-            post["file_name"] = base64.b64encode(image_file.read()).decode("utf-8")
-    
+        post["file_name"] = url_for("static", filename="blog_pictures/" + post["file_name"], _external=True)
+          
     return {"post" : post}, 200
 
 @posts.route("/posts/<int:post_id>", methods=["PUT"])
