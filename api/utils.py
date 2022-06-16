@@ -156,8 +156,6 @@ This is a automated generated email. Please donot reply this email.
     # # return "Message sent!"
     
 def save_file(file):
-    if not file :
-        return None
      
     random_name = secrets.token_hex(8)
     
@@ -180,8 +178,10 @@ def allowed_image(image):
     
     image_extension = image.filename.split(".")[1]
     
-    if image_extension not in allowed_extensions  :
+    if image_extension.upper() not in allowed_extensions  :
         return False
+    
+    return True
     
     
     

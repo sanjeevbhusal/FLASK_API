@@ -1,58 +1,48 @@
-from flask import Blueprint, request, url_for
+from flask import Blueprint, request, url_for, current_app
+import os
 from marshmallow import ValidationError
 from marshmallow import ValidationError
 
 
 from api import db
 from api.models import Post, Vote, Comment
-from api.schema import PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate
+from api.schema import PostRegister, PostResponse, PostUpdate, VoteInput, PostReview, CommentRegister, CommentResponse, CommentUpdate, CategoryMismatchException
 from api.utils import token_required, admin_token_required, get_post_by_id,send_post_accepted_email, send_post_rejected_email, save_file, allowed_image
 from sqlalchemy import or_, desc
 
 
 posts = Blueprint("posts", __name__)
 
-@posts.route("/abc", methods=["POST"])
-def abc():
-    file = request.files.get("file")
-    print(dir(file))
-    print(file.read())
-    
-    print("FORM")
-    print(request.form)
-
 @posts.route("/posts/new", methods=["POST"])
 @token_required
 def create_new_post(user):
-
     data = request.form
-    print(data)
-    print(request.files)
-    print(request.content_type)
+    image = request.files.get("image")
 
     try:
-        # import pdb; pdb.set_trace()
         data = PostRegister().load(data)
         data["user_id"] = user.id
-        data["file_name"] = None
+        data["image"] = None
         
         if image:
             if not allowed_image(image):
                 return {"message":"Your extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
-            filename = save_file(image)
-            data["file_name"] = filename
+            else :
+                filename = save_file(image)
+                data["image"] = filename
         
         new_post = Post(**data)
-        
         db.session.add(new_post)
         db.session.commit()     
     except ValidationError as err:
         return {"message" : err.messages}, 400
-    except Exception as err:
+    except CategoryMismatchException as err:
         return {"message" : "The category you choosed isn't available."}, 400
     
+    if image :
+        new_post.image = url_for("static", filename="blog_pictures/" + new_post.image, _external =True )
     post = PostResponse(exclude=["comments"]).dump(new_post)
-        
+    
     return {"message" : 'Post has been Created', "post" : post}, 201
     
 @posts.route("/posts", methods=["GET"])

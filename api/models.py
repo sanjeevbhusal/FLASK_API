@@ -26,7 +26,7 @@ class Post(db.Model):
     title = db.Column(db.String(120), nullable=False)
     content = db.Column(db.Text, nullable=False)
     category = db.Column(db.String, nullable=False)
-    file_name = db.Column(db.String)
+    image = db.Column(db.String)
     
     is_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     is_accepted = db.Column(db.Boolean, nullable=False, default=False)

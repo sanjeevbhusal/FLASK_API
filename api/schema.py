@@ -64,6 +64,9 @@ class BytesField(fields.Field) :
             return
         if not isinstance(data, bytes) :
             raise ValidationError("Not a Valid Image")
+        
+class CategoryMismatchException(Exception):
+    pass
     
 class PostRegister(Schema):
     title = fields.String(required=True)
@@ -74,8 +77,9 @@ class PostRegister(Schema):
     @validates_schema
     def validate_category(self, data, **kwargs):
         available_categories = ["LatestOffer", "NewEvent", "Careers", "Stories", "Trending"]
+  
         if data["category"] not in available_categories :
-            raise Exception()
+            raise CategoryMismatchException()
     
         
     
@@ -87,7 +91,7 @@ class PostResponse(Post):
     author = fields.Nested(User)
     comments = fields.List(fields.Nested(Comment))
     votes = fields.List(fields.Nested(VoteResponse))
-    file_name= fields.String()
+    image= fields.String()
      
 class PostReview(Schema):
     is_accepted = fields.Boolean(required=True)
