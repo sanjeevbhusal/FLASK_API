@@ -31,6 +31,10 @@ def create_new_post(user):
                 filename = save_file(image)
                 data["image"] = filename
         
+        if user.is_admin == True :
+            data["is_reviewed"] = True
+            data["is_accepted"] = True
+        
         new_post = Post(**data)
         db.session.add(new_post)
         db.session.commit()     
