@@ -53,7 +53,7 @@ def get_all_posts():
     search =  request.args.get("search", "") 
     category =  request.args.get("category", "") 
     
-    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%'))]
+    all_filters = [or_(Post.title.ilike(f'%{search}%'), Post.content.ilike(f'%{search}%', Post.is_accepted == True))]
     if category :
         all_filters.append(Post.category == category)
     
