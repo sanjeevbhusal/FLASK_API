@@ -82,8 +82,8 @@ def get_single_post(post_id):
     
     post = PostResponse().dump(post)
     
-    if post["file_name"] :
-        post["file_name"] = url_for("static", filename="blog_pictures/" + post["file_name"], _external=True)
+    if post["image"] :
+        post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
           
     return {"post" : post}, 200
 
