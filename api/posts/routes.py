@@ -16,6 +16,7 @@ posts = Blueprint("posts", __name__)
 @posts.route("/posts/new", methods=["POST"])
 @token_required
 def create_new_post(user):
+    # import pdb; pdb.set_trace()
     data = request.form
     image = request.files.get("image")
 
@@ -63,8 +64,8 @@ def get_all_posts():
     posts = PostResponse().dump(posts, many=True)
     
     for post in posts :
-        if post["file_name"]:
-            post["file_name"] = url_for("static", filename="blog_pictures/" + post["file_name"], _external=True)
+        if post["image"]:
+            post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
          
     return {"posts" : posts}, 200
 

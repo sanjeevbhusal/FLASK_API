@@ -4,6 +4,8 @@ __pycache__/
 __pycache__/
 *.py[cod]
 *$py.class
+MoruBlog
+package-lock.json
 
 # C extensions
 *.so

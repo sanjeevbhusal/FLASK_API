@@ -47,6 +47,7 @@ def login():
         return {"message" : err.messages}, 400
     
     user = get_user_by_email(data["username"])
+    print(user)
     
     if not user :
         return {"message": "Couldn't find your Moru Account"}, 404

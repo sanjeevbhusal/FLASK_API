@@ -44,7 +44,6 @@ def token_required(f):
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
             user = User.query.get(data["user_id"])
-
         except:
             return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
         
