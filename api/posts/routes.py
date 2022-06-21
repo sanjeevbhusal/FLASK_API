@@ -17,7 +17,6 @@ posts = Blueprint("posts", __name__)
 @token_required
 def create_new_post(user):
     data = request.form
-    image = request.form.get("image")
 
     try:
         data = PostRegister().load(data)
@@ -35,10 +34,7 @@ def create_new_post(user):
     except CategoryMismatchException as err:
         return {"message" : "The category you choosed isn't available."}, 400
     
-    if image :
-        new_post.image = url_for("static", filename="blog_pictures/" + new_post.image, _external =True )
     post = PostResponse(exclude=["comments"]).dump(new_post)
-    
     return {"message" : 'Post has been Created', "post" : post}, 201
     
 @posts.route("/posts", methods=["GET"])
