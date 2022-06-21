@@ -81,9 +81,6 @@ class PostRegister(Schema):
         if data["category"] not in available_categories :
             raise CategoryMismatchException()
     
-        
-    
-    
 class PostUpdate(PostRegister):
     author = fields.Nested(User)
      
@@ -103,11 +100,6 @@ class PostReview(Schema):
             raise Exception()
     
 
-
-    
-    
-    
-    
 #*********************************************************************************** 
 
 class CommentRegister(Schema):

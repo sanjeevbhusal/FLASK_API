@@ -17,7 +17,7 @@ posts = Blueprint("posts", __name__)
 @token_required
 def create_new_post(user):
     data = request.form
-    image = request.files.get("image")
+    image = request.form.get("image")
 
     try:
         data = PostRegister().load(data)
