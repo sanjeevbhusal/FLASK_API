@@ -22,14 +22,11 @@ def create_new_post(user):
     try:
         data = PostRegister().load(data)
         data["user_id"] = user.id
-        data["image"] = None
-        
-        if image:
-            if not allowed_image(image):
-                return {"message":"Your extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
-            else :
-                filename = save_file(image)
-                data["image"] = filename
+
+        if not allowed_image(image):
+            return {"message":"Your extension was not supported. Only PNG, JPEG, JPG extensions are supported. "}
+        else :
+            save_file(image)
         
         if user.is_admin == True :
             data["is_reviewed"] = True
