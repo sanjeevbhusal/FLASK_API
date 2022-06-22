@@ -54,9 +54,9 @@ def get_all_posts():
 
     posts = PostResponse().dump(posts, many=True)
     
-    for post in posts :
-        if post["image"]:
-            post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
+    # for post in posts :
+    #     if post["image"]:
+    #         post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
          
     return {"posts" : posts}, 200
 
@@ -70,8 +70,8 @@ def get_single_post(post_id):
     
     post = PostResponse().dump(post)
     
-    if post["image"] :
-        post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
+    # if post["image"] :
+    #     post["image"] = url_for("static", filename="blog_pictures/" + post["image"], _external=True)
           
     return {"post" : post}, 200
 
