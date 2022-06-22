@@ -14,12 +14,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    MAIL_SERVER='smtp.mailtrap.io'
-    MAIL_PORT = 2525
-    MAIL_USERNAME = '7333153070b432'
-    MAIL_PASSWORD = 'ce7347484a0931'
+    MAIL_SERVER='smtp.googlemail.com'
+    MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    # MAIL_USE_SSL = False
     
 class TestConfig :
     SECRET_KEY = os.environ["SECRET_KEY"]

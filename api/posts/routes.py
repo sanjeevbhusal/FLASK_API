@@ -175,11 +175,11 @@ def update_post_status(user,post_id):
     if data.get("is_accepted"):
         post.is_accepted = True
         send_post_accepted_email(post)
+        post.is_reviewed = True
     else:
         post.rejected_reason = data["rejected_reason"]
         send_post_rejected_email(post)
-    
-    post.is_reviewed = True
+        db.session.delete(post)
     
     db.session.commit()   
     

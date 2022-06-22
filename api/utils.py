@@ -44,6 +44,8 @@ def token_required(f):
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
             user = User.query.get(data["user_id"])
+            if user is None:
+                return {"message": "The user doesnot exist."}, 401
         except:
             return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
         
@@ -123,7 +125,7 @@ def send_post_rejected_email(post):
 Dear {post.author.username}, 
 Recently, you wrote a Article titled {post.title}. Our team has carefully reviewed the Article and we feel very sorry to inform you that we have decided not to go forward with your Article. 
 
-We receive a lot of Article requests and we try our best to select those which provide a great value to our readers. Below is the reason, we decided not to accept your article.
+We receive a lot of Article requests and we try our best to select those which provide a great value to our readers. Below is the reason, we decided not to accept your article. We also have delted the article
 
 {post.rejected_reason}
  
