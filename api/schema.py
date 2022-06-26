@@ -1,4 +1,5 @@
-from marshmallow import Schema, fields, validates_schema, ValidationError
+from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from api.models import User as UserModel
 
 class User(Schema):
     id = fields.Integer(required=True)
@@ -27,6 +28,7 @@ class UserRegister(Schema):
     email = fields.Email(required=True)
     password = fields.String(required=True)
     is_admin = fields.Boolean(default=False)
+    
     
 class UserLogin(Schema):
     username = fields.Email(required=True)

@@ -85,12 +85,7 @@ def get_password_reset_token(user_id):
    
 def get_verification_token(user_id):
     return jwt.encode({"user_id": user_id, "exp": datetime.utcnow() + timedelta(minutes=30 )}, current_app.config["SECRET_KEY"])
-     
-def verify_reset_token(token):
-    try:
-        return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-    except Exception :
-        return None
+    
     
 def send_reset_password_email(email, token):
     msg = Message("Password Reset Form", sender="noreply@gmail.com", recipients= [email])
@@ -184,5 +179,88 @@ def allowed_image(image):
     
     return True
     
+from api.schema import UserRegister, UserLogin, UserUpdate, ResetPassword
+from marshmallow import ValidationError
+
+def validate_register(data) :
+    try:
+        data = UserRegister().load(data)  
+    except ValidationError as err:
+        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
+    
+    email = data["email"]    
+    username = data["username"]
+    
+    user = User.query.filter_by(email = email).first()   
+    if user :
+        return {"error": {"code" : 409, "message" : "The User with this Email already exist."
+        }, "has_error" : True}
+    user = User.query.filter_by(username = username).first()  
+    if user :
+        return {"error": {"code" : 409, "message" : "The User with this Username already exist."
+        }, "has_error" : True}
+         
+    return {"cred" : data, "has_error": False,}
+
+def validate_login(data) :
+    try:
+        data = UserLogin().load(data)
+    except ValidationError as err:
+        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+    
+    email = data["username"]
+    user =  User.query.filter_by(email = email).first()
+    
+    if not user :
+        return {"error": {"code" : 404, "message" : "Couldn't find your Moru Account"}, "has_error" : True}
+        
+    if not bcrypt.check_password_hash(user.password, data["password"]) :
+         return {"error": {"code" : 401, "message" : "Please Enter Correct Password"}, "has_error" : True}
+     
+    return {"cred" : user, "has_error": False}
+
+def validate_user_update(user, user_id, data) :
+    if user.is_admin == False and user.id != user_id :
+        return {"error": {"code" : 403, "message" : "You are not authenticated for this operation."}, "has_error" : True}
+    try:
+        data = UserUpdate().load(data)
+    except ValidationError as err:
+        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+    
+    return {"has_error" : False, "username" : data["username"]}
+
+
+def validate_user_delete(user, user_id) :
+    if user.is_admin == False and user.id != user_id :
+        return {"error": {"code" : 403, "message" : "You are not authenticated for this operation."}, "has_error" : True}
+    if user.is_admin == True :
+        user = User.query.get(user_id)
+    return {"has_error": False, "user" : user}
+
+def verify_reset_token(token):
+    try:
+        token = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
+        user = User.query.get(token["user_id"])
+        if not user :
+            return {"error": {"code" : 404, "message" : "The user doesnot exist"}, "has_error" : True}
+    except Exception :
+        return {"error": {"code" : 400, "message" : "Token couldn't be validated. It might have expired or it might be invalid"}, "has_error" : True}
+    
+    return {"token" : token, "has_error": False, "user" : user}
+
+def verify_reset_password(data) :
+    try:
+        user_credintials = ResetPassword().load(data)
+    except ValidationError as err:
+        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+    data = verify_reset_token(data["token"])
+    return {**data, **user_credintials}
+ 
+
+        
     
     
+    
+    
+    
+   
