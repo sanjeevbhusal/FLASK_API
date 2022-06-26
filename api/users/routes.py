@@ -2,10 +2,10 @@ from flask import Blueprint, request, current_app
 from datetime import datetime, timedelta
 import jwt
 
-from api import d
+from api import db
 from api.models import User
 from api.schema import UserResponse
-from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register, validate_login, validate_user_update, validate_user_delete, verify_reset_password
+from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register, validate_login, validate_user_update, validate_user_delete, verify_reset_password, token_required, get_password_reset_token
 
 users = Blueprint("users", __name__,)
        
