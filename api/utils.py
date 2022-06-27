@@ -223,8 +223,7 @@ def validate_user_update_route(user, user_id, data) :
 
     return {"status" : "success", "credintials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200}
 
-
-def validate_user_delete(user, user_id) :
+def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
         return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
     
@@ -251,7 +250,7 @@ def verify_reset_token(token):
     
     return {"status" : "success", "code" : 200, "token" : token, "message" : "Token is validated. Redirecting to password reset form", "user_id" : user_id}
 
-def verify_reset_password(data, token) :
+def verify_reset_password_route(data, token) :
     try:
         user_credentials = ResetPassword().load({**data})
     except ValidationError as err:
@@ -268,11 +267,11 @@ def verify_create_new_post(data) :
     try:
         data = PostRegister().load(data)
     except ValidationError as err :
-        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status" : "failure", "code" : 400, "message" : err.messages}
     except CategoryMismatchException as err :
-        return {"error" : {"code" : 400, "message" : "Please choose a Valid Category"}, "has_error" : True}
+        return {"status" : "failure", "code" : 400, "message" : "Please choose a Valid Category"}
         
-    return {"has_error" : False, "data" : data}
+    return {"status" : "success", "post_details" : data, "code" : 201, "message" : 'Post has been Created'}
 
 def verify_update_single_post(data, post_id, user):
     try:

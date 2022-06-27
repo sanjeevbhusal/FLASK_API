@@ -1,6 +1,4 @@
 from flask import Blueprint, request, url_for, current_app
-import os
-from marshmallow import ValidationError
 from marshmallow import ValidationError
 
 
@@ -18,19 +16,22 @@ posts = Blueprint("posts", __name__)
 def create_new_post(user):
     data = request.form
     data = verify_create_new_post(data)
-    if data["has_error"] :
-        return data["error"]
+    if data["status"] == "failure" :
+        return data, data["code"]
     
-    data = data["data"]
-    data["user_id"] = user.id
+    post_details = data["post_details"]
+    post_details["user_id"] = user.id
     if user.is_admin == True :
-        data["is_reviewed"] = True
-        data["is_accepted"] = True 
-    new_post = Post(**data)
+        post_details["is_reviewed"] = True
+        post_details["is_accepted"] = True 
+        
+    new_post = Post(**post_details)
     db.session.add(new_post)
     db.session.commit()     
     post = PostResponse(exclude=["comments"]).dump(new_post)
-    return {"message" : 'Post has been Created', "post" : post}, 201
+    
+    return {**data,  "post_details" : post}, data["code"]
+
     
 @posts.route("/posts", methods=["GET"])
 def get_all_posts():
