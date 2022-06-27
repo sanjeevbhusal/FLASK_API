@@ -5,108 +5,121 @@ import jwt
 from api import db
 from api.models import User
 from api.schema import UserResponse
-from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register, validate_login, validate_user_update, validate_user_delete, verify_reset_password, token_required, get_password_reset_token
+from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register_route, validate_login_route, validate_user_update_route, validate_user_delete_route, verify_reset_password_route, token_required, get_password_reset_token
 
 users = Blueprint("users", __name__,)
        
 @users.route("/register", methods = ["POST"])
 def register():
     data = request.get_json()
-    data = validate_register(data)
-    if data["has_error"] :
-        return data["error"]
-            
-    data["password"] = generate_hash_password(data["password"])
-    data.pop("has_error")
-    new_user = User(**data)
+    data = validate_register_route(data)
+    
+    if data["status"] == "failure" :
+        return data, data["code"]
+    
+    credential = data["credential"]    
+    credential["password"] = generate_hash_password(credential["password"])
+    
+    new_user = User(**credential)
     db.session.add(new_user)
     db.session.commit()
     
     token = get_verification_token(new_user.id)
     send_verify_email(new_user.email, token)
     user = UserResponse(exclude=["posts", "comments"]).dump(new_user)
-    return {"message": "User has been Created", "user" : user }, 201
+    
+    return {**data}, data["code"]
         
 @users.route("/login", methods = ["POST"])
 def login():
     data = request.authorization
-    data = validate_login(data)
-    if data["has_error"]:
-        return data["error"]
-    user = data["cred"]
+    data = validate_login_route(data)
+    if data["status"] == "failure" :
+        return data, data["code"]
     
+    user = data["user"]
     token = jwt.encode({"user_id": user.id, "exp": datetime.utcnow() + timedelta(days= 365 )}, current_app.config["SECRET_KEY"])
     user = UserResponse(exclude=["posts", "comments", "created_at"]).dump(user)
-    return {"token" : token, "user" : user}
+  
+    return {**data, "user" : user, "token" : token}, data["code"]
 
 @users.route("/users", methods=["GET"])
 def get_all_users():
     max = request.args.get("max")
     user = User.query.limit(max)
     user = UserResponse(exclude=[]).dump(user, many=True)
-    return {"users": user}, 200
+    return {"code" : 200, "status" : "success" , "users" : user,}, 200
 
 @users.route("/users/<int:user_id>", methods=["GET"])
 def get_user_account(user_id):
     user = User.query.get(user_id)
     if not user :
-        return {"message": "User doesnot exist."}, 404
+        return {"status" : "failure", "message" : "User doesnot exist.", "code" : 404,}, 404
     user = UserResponse().dump(user)
-    return {"user": user}, 200
+    
+    return {"status": "success", "user" : user, "code" : 200}, 200
 
 @users.route("/user/<int:user_id>", methods=["PUT"])
 @token_required
 def update_user(user, user_id):
     data = request.get_json()
-    data = validate_user_update(user, user_id, data)
-    if data["has_error"]:
-        return data["error"]
+    data = validate_user_update_route(user, user_id, data)
+    if data["status"] == "failure":
+        return data, data["code"]
     
-    user.username = data["username"]
+    updated_username = data["credintials"]["username"]
+    user.username = updated_username
     db.session.commit()
     
-    return {"user" : "User has been Updated"}, 200
+    return data, data["code"]
 
 @users.route("/user/<int:user_id>", methods=["DELETE"])
 @token_required
 def delete_user(user, user_id):
-    data = validate_user_delete(user, user_id)
-    if data["has_error"] :
-        return data["error"]
+    data = validate_user_delete_route(user, user_id)
+    if data["status"] == "failure" :
+        return data
     
-    db.session.delete(data["user"])
+    user = data["user_to_delete"]
+    db.session.delete(user)
     db.session.commit()
-    return {"message" : "The user has been deleted"}, 200
+    data.pop("user_to_delete")
+    
+    return  data, data["code"]
     
 @users.route("/generate_token/<string:email>", methods=["GET"])
 def generate_reset_password_token(email):    
     user = User.query.filter_by(email = email).first()
     if not user :
-        return {"error": {"code" : 404, "message" : "User doesnot exist"}}
+        return {"status": "failure", "code" : 404, "message" : "User doesnot exist"}
     
     token = get_password_reset_token(user.id)
     send_reset_password_email(user.email, token)
-    return {"message" : f"Token has been sent to {user.email}"}, 200
+    
+    return {"status" : "success", "code" : 200, "message" : f"Reset link has been sent to {user.email}"}, 200
     
 @users.route("/verify_token/<token>", methods=["GET"])
 def verify_token(token):
     data = verify_reset_token(token)
-    if data["has_error"] :
-        return data["error"]
+    if data["status"] == "failure":
+        return data, data["code"]
     
-    return {"message": "The token has been verified", "token": data["token"]}, 200
+    return data, data["code"]
     
-@users.route("/reset_password", methods=["POST"])
-def reset_passsword():
+@users.route("/reset_password/<token>", methods=["POST"])
+def reset_passsword(token):
     data = request.get_json()
-    data = verify_reset_password(data)
-    if data["has_error"] :
-        return data["error"]
+    data = verify_reset_password_route(data, token)
+    if data["status"] == "failure":
+        return data, data["code"]
     
-    user = data["user"]
-    user.password = generate_hash_password(data["password"])
+    user = User.query.get(data["user_id"])
+    credentials = data["credentials"]
+    
+    user.password = generate_hash_password(credentials["password"])
     db.session.commit()
-    return {"message" : "The password has been updated."}, 200
+    
+    return data, data["code"], 
     
     
     

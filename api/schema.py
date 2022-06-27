@@ -42,7 +42,6 @@ class UserResponse(User):
     comments = fields.List(fields.Nested(Comment))
     
 class ResetPassword(Schema):
-    token = fields.String(required=True)
     password = fields.String(required=True)
     confirm_password = fields.String(required=True)
     

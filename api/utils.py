@@ -9,7 +9,7 @@ import secrets
 
 from api import bcrypt, mail
 from api.schema import user_response
-from api.models import User, Post
+from api.models import User, Post, Comment
 
 def get_user_by_email(email):
     return User.query.filter_by(email = email).first()
@@ -182,85 +182,172 @@ def allowed_image(image):
 from api.schema import UserRegister, UserLogin, UserUpdate, ResetPassword
 from marshmallow import ValidationError
 
-def validate_register(data) :
+def validate_register_route(data) :
     try:
         data = UserRegister().load(data)  
     except ValidationError as err:
-        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status" : "failure", "code" : 400, "message" : err.messages}
     
     email = data["email"]    
-    username = data["username"]
-    
     user = User.query.filter_by(email = email).first()   
     if user :
-        return {"error": {"code" : 409, "message" : "The User with this Email already exist."
-        }, "has_error" : True}
-    user = User.query.filter_by(username = username).first()  
-    if user :
-        return {"error": {"code" : 409, "message" : "The User with this Username already exist."
-        }, "has_error" : True}
+        return {"status": "failure", "code" : 409, "message" : "The Email isn't available. Please choose a different one."}
          
-    return {"cred" : data, "has_error": False,}
+    return {"status" : "success", "code" : 201, "credential" : data, "message": "User has been Created"}
 
-def validate_login(data) :
+def validate_login_route(data) :
     try:
         data = UserLogin().load(data)
     except ValidationError as err:
-        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status": "failure", "code" : 400, "message" : err.messages}
     
     email = data["username"]
     user =  User.query.filter_by(email = email).first()
     
     if not user :
-        return {"error": {"code" : 404, "message" : "Couldn't find your Moru Account"}, "has_error" : True}
+        return {"status": "failure", "code" : 404, "message" : "Couldn't find your Moru Account"}
         
     if not bcrypt.check_password_hash(user.password, data["password"]) :
-         return {"error": {"code" : 401, "message" : "Please Enter Correct Password"}, "has_error" : True}
+         return {"status": "failure", "code" : 401, "message" : "Please Enter Correct Password"}
      
-    return {"cred" : user, "has_error": False}
+    return {"status" : "success", "code" : 200, "message" : "The email and password are genuine. User can be logged in", "user" : user}
 
-def validate_user_update(user, user_id, data) :
-    if user.is_admin == False and user.id != user_id :
-        return {"error": {"code" : 403, "message" : "You are not authenticated for this operation."}, "has_error" : True}
+def validate_user_update_route(user, user_id, data) :
     try:
         data = UserUpdate().load(data)
     except ValidationError as err:
-        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status": "failure" , "code" : 400, "message" : err.messages}
     
-    return {"has_error" : False, "username" : data["username"]}
+    if user.is_admin == False and user.id != user_id :
+        return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
+
+    return {"status" : "success", "credintials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200}
 
 
 def validate_user_delete(user, user_id) :
     if user.is_admin == False and user.id != user_id :
-        return {"error": {"code" : 403, "message" : "You are not authenticated for this operation."}, "has_error" : True}
+        return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
+    
+    user = User.query.get(user_id)
+    if not user :
+        return {"status": "failure", "code" : 404, "message" : "User doesnot exist"}
+    
+    redirect_required = True
     if user.is_admin == True :
-        user = User.query.get(user_id)
-    return {"has_error": False, "user" : user}
+        redirect_required = False
+        
+    return {"status": "success", "user_to_delete" : user, "code" : 200, "message" : "User has been succesfully deleted", "redirect_required" : redirect_required}
 
 def verify_reset_token(token):
     try:
-        token = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-        user = User.query.get(token["user_id"])
-        if not user :
-            return {"error": {"code" : 404, "message" : "The user doesnot exist"}, "has_error" : True}
+        token_info = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
     except Exception :
-        return {"error": {"code" : 400, "message" : "Token couldn't be validated. It might have expired or it might be invalid"}, "has_error" : True}
+        return {"status": "failure", "code" : 400, "message" : "Token couldn't be validated. It might have expired or it might be invalid"}
     
-    return {"token" : token, "has_error": False, "user" : user}
+    user_id = token_info["user_id"]
+    user = User.query.get(user_id)
+    if not user :
+        return {"status": "failure", "code" : 404, "message" : "The user doesnot exist"}
+    
+    return {"status" : "success", "code" : 200, "token" : token, "message" : "Token is validated. Redirecting to password reset form", "user_id" : user_id}
 
-def verify_reset_password(data) :
+def verify_reset_password(data, token) :
     try:
-        user_credintials = ResetPassword().load(data)
+        user_credentials = ResetPassword().load({**data})
     except ValidationError as err:
-        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
-    data = verify_reset_token(data["token"])
-    return {**data, **user_credintials}
- 
-
+        return {"status": "failure", "code" : 400, "message" : err.messages}
+    
+    token_data = verify_reset_token(token)
+    if token_data["status"] == "failure" :
+        return {**token_data}
         
+    return {**token_data, "message" : "Password has been succesfully updated", "credentials" : {**user_credentials}}
+ 
+from api.schema import PostRegister, CategoryMismatchException, PostUpdate, PostReview , CommentRegister, CommentUpdate
+def verify_create_new_post(data) :
+    try:
+        data = PostRegister().load(data)
+    except ValidationError as err :
+        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
+    except CategoryMismatchException as err :
+        return {"error" : {"code" : 400, "message" : "Please choose a Valid Category"}, "has_error" : True}
+        
+    return {"has_error" : False, "data" : data}
+
+def verify_update_single_post(data, post_id, user):
+    try:
+        data= request.get_json()
+        data = PostUpdate().load(data)
+    except ValidationError as err :
+        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
     
-    
-    
-    
-    
+    post = Post.query.get(post_id) 
+    if not post :
+       return {"error" : {"code" : 404, "message" : "The Post doesnot exist."}, "has_error" : True} 
    
+    if user.is_admin == False and user.id != post.author.id :
+        return {"error" : {"code" : 403, "message" : "You are not authorized."}, "has_error" : True}
+    
+    return {"has_error" : False, **data, "post" : post}
+    
+    
+def verify_delete_single_post(user, post_id) :
+    post = Post.query.get(post_id)
+    if not post :
+        return {"error" : {"code" : 404, "message" :"The post doesnot exist"}, "has_error" : True}
+    if user.is_admin == False and user.id != post.author.id :
+        return {"error": {"code" : 403, "message" : "You are not authorized"}, "has_error" : True}    
+    return {"has_error" : False, "post" : post}
+
+def verify_update_post_status(data, post_id) :
+    try:
+        data = PostReview().load(data)
+    except ValidationError as err :
+        return {"error": {"code" : 401, "message" : err.messages}, "has_error" : True}
+    except Exception :
+        return {"error": {"code" : 401, "message" : "Rejecetd Reason is also required if The Post has been Rejeted"}, "has_error" : True}
+
+    post = Post.query.get(post_id)
+    if not post :
+        return {"error" : {"code" : 404, "message": "The Post doesnot Exist."}, "has_error" : True}
+    
+    return {"has_error" : False, "data" : data, "post" : post}
+
+
+def verify_add_comment(data, post_id) :
+    try:
+        data = CommentRegister().load(data)
+    except ValidationError as err :
+        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}, 400
+    
+    post = Post.query.get(post_id)
+    if not post :
+        return {"error": {"code" : 404, "message" : "The Post doesnot exist"}, "has_error" : True }
+    
+    return {"has_error" : False, "data": data}
+
+def verify_update_comment(data, comment_id, user) :
+    try:
+        data = CommentUpdate().load(data)
+    except ValidationError as err :
+        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+    
+    comment = Comment.query.get(comment_id)
+    if not comment :
+        return {"error" : {"code" : 404, "message" : "Comment doesnot exist"}, "has_error" : True}
+    
+    if user.is_admin == False and user.id != comment.author.id :
+        return {"error" : {"code" : 403,  "message" : "You can only update your own comment"}, "has_error" : True}
+     
+    return {"has_error" : False, "data" : data, "comment" : comment }
+
+def verify_delete_comment(comment_id, user) :
+    comment = Comment.query.get(comment_id)
+    if not comment :
+        return {"error" :{"code" : 404, "message" : "Comment doesnot exist"}, "has_error" : True}
+    
+    if user.is_admin == False and user.id != comment.user_id :
+         return {"error" :{"code" : 403, "message" : "You are unauthorized."}, "has_error" : True}
+     
+    return {"has_error" : False, "data" : comment}
+        
