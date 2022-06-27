@@ -67,6 +67,7 @@ def update_user(user, user_id):
     if data["status"] == "failure":
         return data, data["code"]
     
+    user = data["user"]
     updated_username = data["credentials"]["username"]
     user.username = updated_username
     db.session.commit()

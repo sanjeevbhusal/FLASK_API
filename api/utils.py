@@ -220,8 +220,11 @@ def validate_user_update_route(user, user_id, data) :
     
     if user.is_admin == False and user.id != user_id :
         return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
+    
+    if user.is_admin == True:
+        user = User.query.get(user_id)
 
-    return {"status" : "success", "credentials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200}
+    return {"status" : "success", "credentials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200, "user" : user}
 
 def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
