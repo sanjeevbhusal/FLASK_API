@@ -221,7 +221,7 @@ def validate_user_update_route(user, user_id, data) :
     if user.is_admin == False and user.id != user_id :
         return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
 
-    return {"status" : "success", "credintials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200}
+    return {"status" : "success", "credentials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200}
 
 def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
@@ -250,7 +250,7 @@ def verify_reset_token(token):
     
     return {"status" : "success", "code" : 200, "token" : token, "message" : "Token is validated. Redirecting to password reset form", "user_id" : user_id}
 
-def verify_reset_password_route(data, token) :
+def validate_reset_password_route(data, token) :
     try:
         user_credentials = ResetPassword().load({**data})
     except ValidationError as err:
@@ -263,7 +263,7 @@ def verify_reset_password_route(data, token) :
     return {**token_data, "message" : "Password has been succesfully updated", "credentials" : {**user_credentials}}
  
 from api.schema import PostRegister, CategoryMismatchException, PostUpdate, PostReview , CommentRegister, CommentUpdate
-def verify_create_new_post(data) :
+def validate_create_new_post_route(data) :
     try:
         data = PostRegister().load(data)
     except ValidationError as err :
@@ -273,80 +273,80 @@ def verify_create_new_post(data) :
         
     return {"status" : "success", "post_details" : data, "code" : 201, "message" : 'Post has been Created'}
 
-def verify_update_single_post(data, post_id, user):
+def validate_update_single_post_route(data, post_id, user):
     try:
         data= request.get_json()
         data = PostUpdate().load(data)
     except ValidationError as err :
-        return {"error" : {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status" : "failure", "code" : 400, "message" : err.messages}
     
     post = Post.query.get(post_id) 
     if not post :
-       return {"error" : {"code" : 404, "message" : "The Post doesnot exist."}, "has_error" : True} 
+       return {"status" : "failure", "code" : 404, "message" : "The Post doesnot exist."} 
    
     if user.is_admin == False and user.id != post.author.id :
-        return {"error" : {"code" : 403, "message" : "You are not authorized."}, "has_error" : True}
+        return {"status" : "failure" , "code" : 403, "message" : "You are not authorized."}
     
-    return {"has_error" : False, **data, "post" : post}
+    return {"status" : "success", "credentials" : data, "post" : post, "code" : 200, "message" : "Updated Succesfully"}
     
     
-def verify_delete_single_post(user, post_id) :
+def validate_delete_single_post_route(user, post_id) :
     post = Post.query.get(post_id)
     if not post :
-        return {"error" : {"code" : 404, "message" :"The post doesnot exist"}, "has_error" : True}
+        return {"status" : "failure", "code" : 404, "message" : "The post doesnot exist"}
     if user.is_admin == False and user.id != post.author.id :
-        return {"error": {"code" : 403, "message" : "You are not authorized"}, "has_error" : True}    
-    return {"has_error" : False, "post" : post}
+        return {"status" : "failure" , "code" : 403, "message" : "You are not authorized."}  
+    return {"status" : "success", "post" : post, "message" : "The post has been deleted", "code" : 200}
 
-def verify_update_post_status(data, post_id) :
+def validate_update_post_status_route(data, post_id) :
     try:
         data = PostReview().load(data)
     except ValidationError as err :
-        return {"error": {"code" : 401, "message" : err.messages}, "has_error" : True}
+        return {"status": "failure", "code" : 401, "message" : err.messages}
     except Exception :
-        return {"error": {"code" : 401, "message" : "Rejecetd Reason is also required if The Post has been Rejeted"}, "has_error" : True}
+        {"status": "failure", "code" : 401, "message" : "Rejected Reason is also required if The Post has been Rejeted"}
 
     post = Post.query.get(post_id)
     if not post :
-        return {"error" : {"code" : 404, "message": "The Post doesnot Exist."}, "has_error" : True}
+        return {"status" : "failure", "code" : 404, "message": "The Post doesnot Exist."}
     
-    return {"has_error" : False, "data" : data, "post" : post}
+    return {"status" : "success", "credentials" : data, "post" : post}
 
 
-def verify_add_comment(data, post_id) :
+def validate_add_comment_route(data, post_id) :
     try:
         data = CommentRegister().load(data)
     except ValidationError as err :
-        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}, 400
+        return {"status": "failure", "code" : 400, "message" : err.messages}
     
     post = Post.query.get(post_id)
     if not post :
-        return {"error": {"code" : 404, "message" : "The Post doesnot exist"}, "has_error" : True }
+        return {"status": "failure", "code" : 404, "message" : "The Post doesnot exist"}
     
-    return {"has_error" : False, "data": data}
+    return {"status" : "success", "credentials": data}
 
-def verify_update_comment(data, comment_id, user) :
+def validate_update_comment_route(data, comment_id, user) :
     try:
         data = CommentUpdate().load(data)
     except ValidationError as err :
-        return {"error": {"code" : 400, "message" : err.messages}, "has_error" : True}
+        return {"status": "failure", "code" : 400, "message" : err.messages}
     
     comment = Comment.query.get(comment_id)
     if not comment :
-        return {"error" : {"code" : 404, "message" : "Comment doesnot exist"}, "has_error" : True}
+        return {"status" : "failure", "code" : 404, "message" : "Comment doesnot exist"}
     
     if user.is_admin == False and user.id != comment.author.id :
-        return {"error" : {"code" : 403,  "message" : "You can only update your own comment"}, "has_error" : True}
+        return {"status" : "failure", "code" : 403,  "message" : "You are not authorized"}
      
-    return {"has_error" : False, "data" : data, "comment" : comment }
+    return {"status" : "success", "credentials" : data, "comment" : comment, "code" : 200 }
 
-def verify_delete_comment(comment_id, user) :
+def validate_delete_comment_route(comment_id, user) :
     comment = Comment.query.get(comment_id)
     if not comment :
-        return {"error" :{"code" : 404, "message" : "Comment doesnot exist"}, "has_error" : True}
+        return {"status" : "failure", "code" : 404, "message" : "Comment doesnot exist"}
     
     if user.is_admin == False and user.id != comment.user_id :
-         return {"error" :{"code" : 403, "message" : "You are unauthorized."}, "has_error" : True}
+         return {"status" : "failure", "code" : 403,  "message" : "You are not authorized"}
      
-    return {"has_error" : False, "data" : comment}
+    return {"status" : "success", "credentials" : comment}
         

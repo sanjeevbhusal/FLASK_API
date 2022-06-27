@@ -5,7 +5,7 @@ import jwt
 from api import db
 from api.models import User
 from api.schema import UserResponse
-from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register_route, validate_login_route, validate_user_update_route, validate_user_delete_route, verify_reset_password_route, token_required, get_password_reset_token
+from api.utils import generate_hash_password,  verify_reset_token, send_reset_password_email, get_verification_token, send_verify_email, validate_register_route, validate_login_route, validate_user_update_route, validate_user_delete_route, validate_reset_password_route, token_required, get_password_reset_token
 
 users = Blueprint("users", __name__,)
        
@@ -67,7 +67,7 @@ def update_user(user, user_id):
     if data["status"] == "failure":
         return data, data["code"]
     
-    updated_username = data["credintials"]["username"]
+    updated_username = data["credentials"]["username"]
     user.username = updated_username
     db.session.commit()
     
@@ -109,7 +109,7 @@ def verify_token(token):
 @users.route("/reset_password/<token>", methods=["POST"])
 def reset_passsword(token):
     data = request.get_json()
-    data = verify_reset_password_route(data, token)
+    data = validate_reset_password_route(data, token)
     if data["status"] == "failure":
         return data, data["code"]
     
