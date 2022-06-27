@@ -72,6 +72,8 @@ def update_user(user, user_id):
     user.username = updated_username
     db.session.commit()
     
+    data.pop(user)
+    
     return data, data["code"]
 
 @users.route("/user/<int:user_id>", methods=["DELETE"])
