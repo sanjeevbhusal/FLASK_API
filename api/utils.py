@@ -64,11 +64,12 @@ def admin_token_required(f):
         
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-            user = User.query.get(data["user_id"])
-
         except:
             return {"message" : 'Token is invalid'}, 401
         
+        user = User.query.get(data["user_id"])
+        if not user :
+            return {"message" : "User with token doesnot exist."} 
         if user.is_admin == False :
              return {"message" : "You are not authorized"}, 401
         
