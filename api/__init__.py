@@ -37,17 +37,20 @@ def create_app(config=Config):
     from api.posts.routes import PostsById
     from api.posts.routes import UnverifiedPost
     from api.posts.routes import Comments
+    from api.posts.routes import Votes
     
     api.add_resource(Main, "/")
     api.add_resource(Register, "/register")
     api.add_resource(Login, "/login")
     api.add_resource(UsersList, "/users")
-    api.add_resource(UserById, "/users/<int:id>")
+    api.add_resource(UserById, "/users/<int:user_id>")
     api.add_resource(GenerateToken, "/generate_token/<string:email>")
     api.add_resource(VerifyToken, "/verify_token/<token>")
     api.add_resource(CreatePost, "/posts/new")
     api.add_resource(PostsList, "/posts")
-    api.add_resource(PostsById, "/posts/<int:id>")
-    api.add_resource(UnverifiedPost, "/posts/review_posts", "/posts/update_post_status")
-    api.add_resource(Comments, "/comments/<int:id>")
+    api.add_resource(PostsById, "/posts/<int:post_id>")
+    api.add_resource(UnverifiedPost, "/posts/review", "/posts/review/<int:post_id>")
+    api.add_resource(Comments, "/comments/<int:post_id>")
+    api.add_resource(Votes, "/votes/<int:post_id>")
+    api.add_resource(ResetPassword, "/reset_password/<token>")
     return app

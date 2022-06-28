@@ -45,7 +45,7 @@ def token_required(f):
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
             user = User.query.get(data["user_id"])
             if user is None:
-                return {"message": "Your account doesnot exist."}, 401
+                return {"status" : "failure", "code" : 404, "message": "User trying to perform operation doesnot exist."}, 404
         except:
             return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
         
@@ -194,7 +194,7 @@ def validate_register_route(data) :
     if user :
         return {"status": "failure", "code" : 409, "message" : "The Email isn't available. Please choose a different one."}
          
-    return {"status" : "success", "code" : 201, "credential" : data, "message": "User has been Created"}
+    return {"status" : "success", "code" : 201, "validated_user_input" : data}
 
 def validate_login_route(data) :
     try:
@@ -211,7 +211,10 @@ def validate_login_route(data) :
     if not bcrypt.check_password_hash(user.password, data["password"]) :
          return {"status": "failure", "code" : 401, "message" : "Please Enter Correct Password"}
      
-    return {"status" : "success", "code" : 200, "message" : "The email and password are genuine. User can be logged in", "user" : user}
+    # if user.is_verified == False :
+    #     return {"status" : "failure", "code" : 403, "message" : "The account is unverified. Please check your email for verificaion"}
+    
+    return {"status" : "success", "user" : user, "validated_user_input" : data }
 
 def validate_user_update_route(user, user_id, data) :
     try:
@@ -220,26 +223,29 @@ def validate_user_update_route(user, user_id, data) :
         return {"status": "failure" , "code" : 400, "message" : err.messages}
     
     if user.is_admin == False and user.id != user_id :
-        return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
+        return {"status": "failure", "code" : 403, "message" : "You are not authorized"}
     
     if user.is_admin == True:
         user = User.query.get(user_id)
+        
+    if not user :
+        return {"status" : "failure", "code" : 404, "message" : "User doesnot exist"}
 
-    return {"status" : "success", "credentials" : data, "message" : f"Username has been Updated to {data['username']}", "code" : 200, "user" : user}
+    return {"status" : "success", "validated_user_input" : data, "user_object" : user}
 
 def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
         return {"status": "failure", "code" : 401, "message" : "You are not authorized"}
     
-    user = User.query.get(user_id)
-    if not user :
+    user_to_be_deleted = User.query.get(user_id)
+    if not user_to_be_deleted :
         return {"status": "failure", "code" : 404, "message" : "User doesnot exist"}
     
     redirect_required = True
-    if user.is_admin == True :
+    if user.is_admin == True and user.id != user_to_be_deleted.id :
         redirect_required = False
         
-    return {"status": "success", "user_to_delete" : user, "code" : 200, "message" : "User has been succesfully deleted", "redirect_required" : redirect_required}
+    return {"status": "success", "user_object" : user_to_be_deleted, "redirect_required" : redirect_required}
 
 def verify_reset_token(token):
     try:
@@ -249,33 +255,38 @@ def verify_reset_token(token):
     
     user_id = token_info["user_id"]
     user = User.query.get(user_id)
+    
     if not user :
         return {"status": "failure", "code" : 404, "message" : "The user doesnot exist"}
     
-    return {"status" : "success", "code" : 200, "token" : token, "message" : "Token is validated. Redirecting to password reset form", "user_id" : user_id}
+    return {"status" : "success", "user_id" : user_id}
 
 def validate_reset_password_route(data, token) :
     try:
-        user_credentials = ResetPassword().load({**data})
+        data = ResetPassword().load({**data})
     except ValidationError as err:
         return {"status": "failure", "code" : 400, "message" : err.messages}
     
     token_data = verify_reset_token(token)
+    user_id = token_data.get("user_id")
+    
     if token_data["status"] == "failure" :
-        return {**token_data}
+        return token_data
+    elif data["user_id"] != user_id :
+        return {"status" : "failure", "code" : 400, "message" : "User in the token token and user sent in the request was not same"}
         
-    return {**token_data, "message" : "Password has been succesfully updated", "credentials" : {**user_credentials}}
+    return {"status" : "success" , "validated_user_input" : data, "user_id" : user_id}
  
 from api.schema import PostRegister, CategoryMismatchException, PostUpdate, PostReview , CommentRegister, CommentUpdate
 def validate_create_new_post_route(data) :
     try:
         data = PostRegister().load(data)
     except ValidationError as err :
-        return {"status" : "failure", "code" : 400, "message" : err.messages}
+        return {"status" : "failure", "code" : 400, "message" : err.messages, }
     except CategoryMismatchException as err :
         return {"status" : "failure", "code" : 400, "message" : "Please choose a Valid Category"}
         
-    return {"status" : "success", "post_details" : data, "code" : 201, "message" : 'Post has been Created'}
+    return {"status" : "success" , "verified_user_input" : data}
 
 def validate_update_single_post_route(data, post_id, user):
     try:
@@ -291,8 +302,7 @@ def validate_update_single_post_route(data, post_id, user):
     if user.is_admin == False and user.id != post.author.id :
         return {"status" : "failure" , "code" : 403, "message" : "You are not authorized."}
     
-    return {"status" : "success", "credentials" : data, "post" : post, "code" : 200, "message" : "Updated Succesfully"}
-    
+    return {"status" : "success", "verified_user_input" : data, "post_object" : post}
     
 def validate_delete_single_post_route(user, post_id) :
     post = Post.query.get(post_id)
@@ -300,7 +310,7 @@ def validate_delete_single_post_route(user, post_id) :
         return {"status" : "failure", "code" : 404, "message" : "The post doesnot exist"}
     if user.is_admin == False and user.id != post.author.id :
         return {"status" : "failure" , "code" : 403, "message" : "You are not authorized."}  
-    return {"status" : "success", "post" : post, "message" : "The post has been deleted", "code" : 200}
+    return {"status" : "success", "post_object" : post}
 
 def validate_update_post_status_route(data, post_id) :
     try:
@@ -308,13 +318,15 @@ def validate_update_post_status_route(data, post_id) :
     except ValidationError as err :
         return {"status": "failure", "code" : 401, "message" : err.messages}
     except Exception :
-        {"status": "failure", "code" : 401, "message" : "Rejected Reason is also required if The Post has been Rejeted"}
+        return {"status": "failure", "code" : 401, "message" : "Rejected Reason is also required if The Post has been Rejeted"}
 
     post = Post.query.get(post_id)
     if not post :
         return {"status" : "failure", "code" : 404, "message": "The Post doesnot Exist."}
+    if post.is_reviewed == True :
+        return {"status" : "failure", "code" : 400, "message": "The Post is already verified."}
     
-    return {"status" : "success", "credentials" : data, "post" : post}
+    return {"status" : "success", "verified_user_input" : data, "post_object" : post}
 
 
 def validate_add_comment_route(data, post_id) :
@@ -327,7 +339,7 @@ def validate_add_comment_route(data, post_id) :
     if not post :
         return {"status": "failure", "code" : 404, "message" : "The Post doesnot exist"}
     
-    return {"status" : "success", "credentials": data}
+    return {"status" : "success", "validated_user_input": data}
 
 def validate_update_comment_route(data, comment_id, user) :
     try:
@@ -342,7 +354,7 @@ def validate_update_comment_route(data, comment_id, user) :
     if user.is_admin == False and user.id != comment.author.id :
         return {"status" : "failure", "code" : 403,  "message" : "You are not authorized"}
      
-    return {"status" : "success", "credentials" : data, "comment" : comment, "code" : 200 }
+    return {"status" : "success", "validated_user_input" : data, "comment" : comment}
 
 def validate_delete_comment_route(comment_id, user) :
     comment = Comment.query.get(comment_id)
@@ -352,5 +364,5 @@ def validate_delete_comment_route(comment_id, user) :
     if user.is_admin == False and user.id != comment.user_id :
          return {"status" : "failure", "code" : 403,  "message" : "You are not authorized"}
      
-    return {"status" : "success", "credentials" : comment}
+    return {"status" : "success", "comment" : comment}
         

@@ -39,10 +39,12 @@ class UserUpdate(Schema):
 class UserResponse(User):
     posts = fields.List(fields.Nested(Post))
     comments = fields.List(fields.Nested(Comment))
+    is_verified = fields.Boolean()
     
 class ResetPassword(Schema):
     password = fields.String(required=True)
     confirm_password = fields.String(required=True)
+    user_id = fields.Integer(required=True)
     
     @validates_schema
     def compare_passwords(self, data, **kwargs):
@@ -107,7 +109,6 @@ class CommentRegister(Schema):
 
 class CommentResponse(Comment):
     author = fields.Nested(User)
-    # post  = fields.Nested(Post)
    
 class CommentUpdate(Schema):
     message = fields.String(required=True)

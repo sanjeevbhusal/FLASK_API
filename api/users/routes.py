@@ -12,37 +12,41 @@ from api.utils import generate_hash_password,  verify_reset_token, send_reset_pa
 
 class Register(Resource) :
     def post(self) :
-        data = request.get_json()
-        data = validate_register_route(data)
+        unvalidated_user_input = request.get_json()
+        data = validate_register_route(unvalidated_user_input)
         
-        if data["status"] == "failure" :
+        status = data["status"]
+        validated_user_input = data.get("validated_user_input")
+        
+        if status == "failure" :
             return data, data["code"]
+   
+        validated_user_input["password"] = generate_hash_password(validated_user_input["password"])
         
-        credential = data["credential"]    
-        credential["password"] = generate_hash_password(credential["password"])
-        
-        new_user = User(**credential)
+        new_user = User(**validated_user_input)
         db.session.add(new_user)
         db.session.commit()
         
         token = get_verification_token(new_user.id)
         send_verify_email(new_user.email, token)
-        user = UserResponse(exclude=["posts", "comments"]).dump(new_user)
         
-        return {**data}, data["code"]
+        return {"status" : "success", "message" : f"Please Verify your account. The link is sent to {validated_user_input['email']}.", "code" : 201 } , 201
     
 class Login(Resource) :
     def post(self) :
-        data = request.authorization
-        data = validate_login_route(data)
-        if data["status"] == "failure" :
+        unvalidated_user_input = request.authorization
+        data = validate_login_route(unvalidated_user_input)
+        
+        status = data["status"]
+        user = data.get("user")
+        
+        if status == "failure" :
             return data, data["code"]
         
-        user = data["user"]
         token = jwt.encode({"user_id": user.id, "exp": datetime.utcnow() + timedelta(days= 365 )}, current_app.config["SECRET_KEY"])
         user = UserResponse(exclude=["posts", "comments", "created_at"]).dump(user)
     
-        return {**data, "user" : user, "token" : token}, data["code"]      
+        return {"user" : user, "token" : token, "message" : f"Welcome Back {user['username']}", "code" : 200 }, 200    
 
 class UsersList(Resource) :
     def get(self) :
@@ -52,9 +56,8 @@ class UsersList(Resource) :
         return {"code" : 200, "status" : "success" , "users" : user,}, 200
     
 class UserById(Resource) :
-    def get(self, id) :
-        print(self, id)
-        user = User.query.get(id)
+    def get(self, user_id) :
+        user = User.query.get(user_id)
         if not user :
             return {"status" : "failure", "message" : "User doesnot exist.", "code" : 404,}, 404
         user = UserResponse().dump(user)
@@ -62,32 +65,38 @@ class UserById(Resource) :
         return {"status": "success", "user" : user, "code" : 200}, 200
     
     @token_required
-    def delete(user, self, id) :
-        data = validate_user_delete_route(user, id)
-        if data["status"] == "failure" :
-            return data
+    def delete(user, self, user_id) :
+        data = validate_user_delete_route(user, user_id)
+        
+        status = data["status"]
+        user = data.get("user_object")
+        redirect_required = data.get("redirect_required")
+        
+        if status == "failure" :
+            return data, data["code"]
     
-        user = data["user_to_delete"]
         db.session.delete(user)
         db.session.commit()
-        data.pop("user_to_delete")
         
-        return  data, data["code"]
+        return  {"status" : "success", "code" : 200, "message" : "User has been deleted Succesfully", "redirect_required" : redirect_required}, 200
     
     @token_required
-    def put(user, self, id) :
-        data = request.get_json()
-        data = validate_user_update_route(user, id, data)
-        if data["status"] == "failure":
+    def put(user, self, user_id) :
+        unvalidated_user_input = request.get_json()
+        data = validate_user_update_route(user, user_id, unvalidated_user_input)
+        
+        status = data["status"]
+        user = data.get("user_object")
+        validated_user_input = data.get("validated_user_input")
+        updated_username = validated_user_input.get("username")
+        
+        if status == "failure":
             return data, data["code"]
         
-        user = data["user"]
-        updated_username = data["credentials"]["username"]
         user.username = updated_username
         db.session.commit()
-        
-        data.pop("user")
-        return data, data["code"]
+      
+        return {"status" : "success", "code" : 200, "message" : f"Username has been Updated to {data['username']}"}, 200
             
 class GenerateToken(Resource) :
     def get(self, email) :
@@ -103,24 +112,31 @@ class GenerateToken(Resource) :
 class VerifyToken(Resource) :
     def get(self, token) :
         data = verify_reset_token(token)
-        if data["status"] == "failure":
+        
+        status = data["status"]
+        user_id = data.get("user_id")
+        
+        if status == "failure":
             return data, data["code"]
         
-        return data, data["code"]
+        return {"status" : "success", "code" : 200, "user_id" : user_id}, 200
     
 class ResetPassword(Resource) :
-    def put(token):
-        data = request.get_json()
-        data = validate_reset_password_route(data, token)
-        if data["status"] == "failure":
+    def put(self, token):
+        unvalidated_user_input = request.get_json()
+        data = validate_reset_password_route(unvalidated_user_input, token)
+        
+        status = data["status"]
+        validated_user_input = data.get("validated_user_input")
+        user_id = data.get("user_id")
+        
+        if status == "failure":
             return data, data["code"]
 
-        user = User.query.get(data["user_id"])
-        credentials = data["credentials"]
-
-        user.password = generate_hash_password(credentials["password"])
+        user = User.query.get(user_id)
+        user.password = generate_hash_password(validated_user_input["password"])
         db.session.commit()
 
-        return data, data["code"]
+        return {"status" : "success", "code" : 200, "message" : "Password Succesfully Changed"}, 200
             
     
