@@ -1,5 +1,4 @@
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
-from api.models import User as UserModel
+from marshmallow import Schema, fields, validates_schema, ValidationError
 
 class User(Schema):
     id = fields.Integer(required=True)

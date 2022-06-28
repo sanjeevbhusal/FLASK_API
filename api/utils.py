@@ -45,7 +45,7 @@ def token_required(f):
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
             user = User.query.get(data["user_id"])
             if user is None:
-                return {"message": "The user doesnot exist."}, 401
+                return {"message": "Your account doesnot exist."}, 401
         except:
             return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
         
@@ -229,7 +229,7 @@ def validate_user_update_route(user, user_id, data) :
 
 def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
-        return {"status": "failure", "code" : 403, "message" : "You are not authenticated"}
+        return {"status": "failure", "code" : 401, "message" : "You are not authorized"}
     
     user = User.query.get(user_id)
     if not user :

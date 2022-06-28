@@ -1,8 +1,6 @@
-from flask import Blueprint
-from flask import request
+from flask_restful import Resource
 
-main = Blueprint("main", __name__)
-
-@main.route("/")
-def home():
-    return {"message" : "Welcome to the Home Page"}
+class Main(Resource) :
+    def get(self) :
+        return {"message" : "Welcome to Home Page "}
+    
