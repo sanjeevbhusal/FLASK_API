@@ -133,12 +133,13 @@ class UnverifiedPost(Resource) :
         if status == "failure" :
             return data, data["code"]
         
+        is_accepted = False 
         if verified_user_input.get("is_accepted"):
             is_accepted = True
             post.is_reviewed = True
+            post.is_accepted = True
             send_post_accepted_email(post)
         else:
-            is_accepted = False
             post.rejected_reason = verified_user_input["rejected_reason"]
             send_post_rejected_email(post)
             db.session.delete(post)

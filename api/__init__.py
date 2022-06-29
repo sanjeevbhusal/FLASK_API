@@ -12,14 +12,14 @@ migrate = Migrate()
 bcrypt = Bcrypt()
 mail = Mail()
 
-
 def create_app(config=Config):
     app = Flask(__name__) 
     app.config.from_object(config)
+    with app.app_context():
+        db.init_app(app)   
     api = Api(app)
     
     api.init_app(app)
-    db.init_app(app)    
     mail.init_app(app)
     migrate.init_app(app, db)
     CORS(app, origins=["*"])

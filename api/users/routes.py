@@ -88,15 +88,15 @@ class UserById(Resource) :
         status = data["status"]
         user = data.get("user_object")
         validated_user_input = data.get("validated_user_input")
-        updated_username = validated_user_input.get("username")
         
         if status == "failure":
             return data, data["code"]
         
+        updated_username = validated_user_input["username"]
         user.username = updated_username
         db.session.commit()
       
-        return {"status" : "success", "code" : 200, "message" : f"Username has been Updated to {data['username']}"}, 200
+        return {"status" : "success", "code" : 200, "message" : f"Username has been Updated to {updated_username}"}, 200
             
 class GenerateToken(Resource) :
     def get(self, email) :
