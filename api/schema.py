@@ -30,7 +30,7 @@ class UserRegister(Schema):
     
     
 class UserLogin(Schema):
-    username = fields.Email(required=True)
+    email = fields.Email(required=True)
     password = fields.String(required=True)
        
 class UserUpdate(Schema):
