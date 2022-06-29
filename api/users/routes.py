@@ -47,7 +47,7 @@ class Login(Resource) :
         token = jwt.encode({"user_id": user.id, "exp": datetime.utcnow() + timedelta(days= 365 )}, current_app.config["SECRET_KEY"])
         user = UserResponse(exclude=["posts", "comments", "created_at"]).dump(user)
     
-        return {"user" : user, "token" : token, "message" : f"Welcome Back {user['username']}", "code" : 200 }, 200    
+        return {"user" : user, "token" : token, "message" : f"Welcome Back {user['email']}", "code" : 200 }, 200    
 
 class UsersList(Resource) :
     def get(self) :

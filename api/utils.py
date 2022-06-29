@@ -202,7 +202,7 @@ def validate_login_route(data) :
     except ValidationError as err:
         return {"status": "failure", "code" : 400, "message" : err.messages}
     
-    email = data["username"]
+    email = data["email"]
     user =  User.query.filter_by(email = email).first()
     
     if not user :
