@@ -1,14 +1,14 @@
-from config import app
-from api import db
+from config import app, db
+from flask import current_app
 import base64
 import pytest 
 
 @pytest.fixture
 def client() :
-    import pdb; pdb.set_trace()
-    db.session.remove()
-    db.drop_all()
-    return app.test_client()
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        return app.test_client()
 
 @pytest.mark.parametrize("username, email, password, expected", [
     ("sanjeev", "bhusalsanjeev23@gmail.com", "password", 201),
@@ -17,7 +17,6 @@ def client() :
 ])
 def test_register_user(client, username, email, password, expected):
     r = client.post("/register", json={"username": username, "email" : email, "password" : password} )
-    
     assert r.status_code == expected
     
 # @pytest.mark.parametrize("email, password, expected", [

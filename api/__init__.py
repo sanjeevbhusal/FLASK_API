@@ -14,10 +14,9 @@ mail = Mail()
 
 def create_app(config=Config):
     app = Flask(__name__) 
-    app.config.from_object(config)
-    with app.app_context():
-        db.init_app(app)   
+    app.config.from_object(config) 
     api = Api(app)
+    db.init_app(app)
     
     api.init_app(app)
     mail.init_app(app)
@@ -53,4 +52,5 @@ def create_app(config=Config):
     api.add_resource(Comments, "/comments/<int:post_id>")
     api.add_resource(Votes, "/votes/<int:post_id>")
     api.add_resource(ResetPassword, "/reset_password/<token>")
+    
     return app

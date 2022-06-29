@@ -34,7 +34,7 @@ class Register(Resource) :
     
 class Login(Resource) :
     def post(self) :
-        unvalidated_user_input = request.authorization
+        unvalidated_user_input = request.get_json()
         data = validate_login_route(unvalidated_user_input)
         
         status = data["status"]
