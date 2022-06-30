@@ -84,7 +84,7 @@ class PostRegister(Schema):
             raise CategoryMismatchException()
     
 class PostUpdate(PostRegister):
-    author = fields.Nested(User)
+    pass
      
 class PostResponse(Post):
     author = fields.Nested(User)

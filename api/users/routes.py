@@ -30,12 +30,11 @@ class Register(Resource) :
         token = get_verification_token(new_user.id)
         send_verify_email(new_user.email, token)
         
-        return {"status" : "success", "message" : f"Please Verify your account. The link is sent to {validated_user_input['email']}.", "code" : 201 } , 201
+        return {"status" : "success", "message" : f"Please Verify your account. The link is sent to {validated_user_input['email']}.", "code" : 201, "is_admin" : new_user.is_admin } , 201
     
 class Login(Resource) :
     def post(self) :
         unvalidated_user_input = request.get_json()
-        print(unvalidated_user_input)
         data = validate_login_route(unvalidated_user_input)
         
         status = data["status"]

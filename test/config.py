@@ -10,6 +10,7 @@ from api import create_app, db
 from api.config import TestConfig
 
 app = create_app(TestConfig)
+client = app.test_client()
 
 random_email = ''.join(random.choice(string.ascii_letters) for x in range(7)) + "@gmail.com"
 

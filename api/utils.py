@@ -47,7 +47,7 @@ def token_required(f):
             if user is None:
                 return {"status" : "failure", "code" : 404, "message": "User trying to perform operation doesnot exist."}, 404
         except:
-            return {"message" : 'Token is invalid or the user doesnot exist.'}, 401
+            return {"message" : 'Token is invalid.'}, 401
         
         return f(user, *args, **kwargs)
     # Renaming the function name:
@@ -235,7 +235,7 @@ def validate_user_update_route(user, user_id, data) :
 
 def validate_user_delete_route(user, user_id) :
     if user.is_admin == False and user.id != user_id :
-        return {"status": "failure", "code" : 401, "message" : "You are not authorized"}
+        return {"status": "failure", "code" : 403, "message" : "You are not authorized"}
     
     user_to_be_deleted = User.query.get(user_id)
     if not user_to_be_deleted :

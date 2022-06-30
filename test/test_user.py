@@ -1,82 +1,70 @@
-from config import app, db
-from flask import current_app
-import base64
 import pytest 
+from utils import get_jwt
 
-@pytest.fixture
-def client() :
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        return app.test_client()
 
-@pytest.mark.parametrize("username, email, password, expected", [
-    ("sanjeev", "bhusalsanjeev23@gmail.com", "password", 201),
-    ("sanjeev", "bhusalsanjeev23", "password", 400),
-    ("sanjeev", "bhusalsanjeev23@gmail.com", "password", 409), 
+@pytest.mark.parametrize("username, email, password, is_admin, expected", [
+    ("test", "test@gmail.com", "password", False, 201),
+    ("testadmin", "test_admin@gmail.com", "admin_password", True, 201),
+    (None, "test@gmail.com", "password", False, 400),
+    ("test", "test@gmail.com", "password", False, 409)
 ])
-def test_register_user(client, username, email, password, expected):
-    r = client.post("/register", json={"username": username, "email" : email, "password" : password} )
+def test_register_user(client, username, email, password, is_admin, expected) :
+    data= {"username" : username, "email" : email,  "password": password, "is_admin" : is_admin}
+    r = client.post("/register", json = data)
     assert r.status_code == expected
     
-# @pytest.mark.parametrize("email, password, expected", [
-#     ("bhusalsanjeev23@gmail.com", "password", 200),
-#     ("bhusasanjeev", "password", 400),
-#     ("bhusalsanjeev23@gmail.com", "passwor", 401),
-#     ("bhusalsanjeev24@gmail.com", "password", 404)
-# ])
-# def test_login_user(email, password, expected):
-#     r = client.post("/login",  headers={
-#                 'Authorization': 'Basic ' + base64.b64encode(bytes(email + ":" + password, 'ascii')).decode('ascii')
-#             })
-#     assert r.status_code == expected
+@pytest.mark.parametrize("email, password, expected", [
+    ("test@gmail.com", "password", 200),
+    ("test_admin@gmail.com", "admin_password", 200),
+    (None, "passwor", 400),
+    ("test@gmail.com", "passwor", 401),
+    ("admin@gmail.com", "admin_password", 404),
+])
+def test_login_user(client, email, password, expected) :
+    data = {"email" : email, "password" : password, }
+    r = client.post("/login", json = data)
+    assert r.status_code == expected
+    
+def test_get_users_list(client) :
+    r= client.get("/users")
+    assert r.status_code == 200
+    
+@pytest.mark.parametrize("user_id, expected", [
+    (1, 200), (3, 404)
+])    
+def test_get_user_by_id(client, user_id, expected) :
+    r = client.get(f"/users/{user_id}")
+    assert r.status_code == expected
+        
+@pytest.mark.parametrize("logged_in_user_id, user_id_to_be_updated, username, expected", [
+    (1, 1, "sanjeev", 200),
+    (1, 2, "sanjeev", 403),
+    (2, 2, "sanjeev", 200),
+    (2, 1, "sanjeev", 200),
+    (4, 1, "sanjeev", 404),
+])   
+def test_update_user(client, logged_in_user_id, user_id_to_be_updated, username, expected) :
+    data = {"username" : username}
+    jwt = get_jwt(logged_in_user_id)
+    r = client.put(f"/users/{ user_id_to_be_updated}", headers = {
+        "access_token" :  jwt 
+    }, json = data )
+    assert r.status_code == expected   
+    
+@pytest.mark.parametrize("logged_in_user_id, user_id_to_be_deleted, expected", [
+    (1, 2,  403),
+    (1, 1,  200),
+    (2, 3,  404),
+    (2, 2,  200),
+    (2, 2, 404)
+])      
+def test_delete_user(client, logged_in_user_id, user_id_to_be_deleted, expected) :
+    jwt = get_jwt(logged_in_user_id) 
+    r = client.delete(f"/users/{user_id_to_be_deleted}", headers={
+        "access_token" : jwt
+    })
+    assert r.status_code == expected
+    
     
 
-# def test_get_users_list() :
-#     r= client.get("/users")
-#     assert r.status_code == 200
-    
-# @pytest.mark.parametrize("id, expected", [
-#     (1, 200),
-#     (2, 404)
-# ])
-# def test_get_user_by_id(id, expected) :
-#     r  = client.get(f"/users/{id}")
-#     assert r.status_code == expected
 
-#jwt token, user_id, updatingvalues
-
-# @pytest.fixture
-# def get_normal_user_jwt() :
-#     # r = client.post("/register", json={"username" : "Sanjeev", "email" : "bhusalsanjeev23@gmail.com", "password" : "password"})
-#     r = client.post("/login",  headers={
-#                 'Authorization': 'Basic ' + base64.b64encode(bytes("bhusalsanjeev23@gmail.com" + ":" + "password", 'ascii')).decode('ascii') })
-#     return r.get_json()["token"]
-
-# def get_admin_jwt() :
-#     # r = client.post("/register", json={"username" : "Sanjeev", "email" : "bhusalsanjeev23@gmail.com", "password" : "password"})
-#     r = client.post("/login",  headers={
-#                 'Authorization': 'Basic ' + base64.b64encode(bytes("bhusalsanjeev233@gmail.com" + ":" + "password", 'ascii')).decode('ascii') })
-#     return r.get_json()["token"]
-
-
-# @pytest.mark.parametrize("user_id, username, expected", [
-#     (11, "Sanjeev1", 200 ), 
-#     (12, "Sanjeev1", 403),
-# ])
-# def test_update_user(get_normal_user_jwt, user_id, username, expected) :
-#     r = client.put(f"/users/{user_id}", headers = {
-#         "access_token" : get_normal_user_jwt
-#     }, json = {"username" : username})
-#     assert r.status_code== expected
-    
-# @pytest.mark.parametrize("user_id, username, expected", [
-#     (11, "Sanjeev1", 200 ), 
-#     (12, "Sanjeev1", 403),
-# ])
-# def test_update_user_by_admin(get_admin_jwt, user_id, username, expected) :
-#     r = client.put(f"/users/{user_id}", headers = {
-#         "access_token" : get_admin_jwt
-#     }, json = {"username" : username})
-#     assert r.status_code== expected
-    

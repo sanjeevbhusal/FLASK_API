@@ -1,5 +1,15 @@
 import pytest
-# from config import client
+from config import app, db
+
+
+@pytest.fixture(scope="module")
+def client() :
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        return app.test_client()
+    
+    
 # import base64
 # import itsdangerous
 
