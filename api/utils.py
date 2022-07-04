@@ -96,7 +96,7 @@ Click on the link below to verify your account
 
 The link expires in 30 minutes.
 
-{token}
+https://moru-blog.herokuapp.com/reset_password/password_change?token={token}
 
 If you didn't requested to reset your password, kindly ignore this email.
 """
