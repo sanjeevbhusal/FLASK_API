@@ -96,7 +96,7 @@ class UserById(Resource) :
         user.username = updated_username
         db.session.commit()
       
-        return {"status" : "success", "code" : 200, "message" : f"Username has been Updated to {updated_username}"}, 200
+        return {"status" : "success", "code" : 200, "message" : f"Username has been Updated to {updated_username}", "credintials" : user}, 200
             
 class GenerateToken(Resource) :
     def get(self, email) :
