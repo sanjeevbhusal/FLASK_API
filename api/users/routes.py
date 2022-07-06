@@ -10,7 +10,7 @@ from api.utils import generate_hash_password,  verify_reset_token, send_reset_pa
 
 # users = Blueprint("users", __name__,)
 
-class Register(Resource) :
+class Register( Resource) :
     def post(self) :
         unvalidated_user_input = request.get_json()
         data = validate_register_route(unvalidated_user_input)
@@ -33,7 +33,7 @@ class Register(Resource) :
         return {"status" : "success", "message" : f"Please Verify your account. The link is sent to {validated_user_input['email']}.", "code" : 201, "is_admin" : new_user.is_admin } , 201
     
 class Login(Resource) :
-    def post(self) :
+    def post(self): 
         unvalidated_user_input = request.get_json()
         data = validate_login_route(unvalidated_user_input)
         
@@ -49,9 +49,9 @@ class Login(Resource) :
         return {"user" : user, "token" : token, "message" : f"Welcome Back {user['email']}", "code" : 200 }, 200    
 
 class UsersList(Resource) :
-    def get(self) :
-        max = request.args.get("max")
-        user = User.query.limit(max)
+    def get(self):
+        limit = request.args.get("max")
+        user = User.query.limit(limit)
         user = UserResponse(exclude=[]).dump(user, many=True)
         return {"code" : 200, "status" : "success" , "users" : user,}, 200
     

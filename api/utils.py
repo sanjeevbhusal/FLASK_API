@@ -46,7 +46,7 @@ def token_required(f):
             user = User.query.get(data["user_id"])
             if user is None:
                 return {"status" : "failure", "code" : 404, "message": "User trying to perform operation doesnot exist."}, 404
-        except:
+        except Exception as e:
             return {"message" : 'Token is invalid.'}, 401
         
         return f(user, *args, **kwargs)
@@ -64,7 +64,7 @@ def admin_token_required(f):
         
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms="HS256")
-        except:
+        except Exception as e:
             return {"message" : 'Token is invalid'}, 401
         
         user = User.query.get(data["user_id"])
@@ -155,15 +155,15 @@ This is a automated generated email. Please donot reply this email.
 def save_file(file):
      
     random_name = secrets.token_hex(8)
-    
+
     _, f_exe = os.path.splitext(file.filename)
     filename = random_name + f_exe
-    
+
     image_path = os.path.join(current_app.root_path, "static/blog_pictures")
-    
-    with open(image_path + "/" + filename, "wb") as f:
+
+    with open(f"{image_path}/{filename}", "wb") as f:
         f.write(file.read())
-    
+
     return filename
 
 
@@ -190,9 +190,10 @@ def validate_register_route(data) :
         return {"status" : "failure", "code" : 400, "message" : err.messages}
     
     email = data["email"]    
-    user = User.query.filter_by(email = email).first()   
-    if user :
-        return {"status": "failure", "code" : 409, "message" : "The Email isn't available. Please choose a different one."}
+    existing_user = User.query.filter_by(email = email).first()   
+    
+    if existing_user :
+        return {"status": "failure", "code" : 409, "message" : "User with such email address already exists."}
          
     return {"status" : "success", "code" : 201, "validated_user_input" : data}
 
@@ -203,18 +204,18 @@ def validate_login_route(data) :
         return {"status": "failure", "code" : 400, "message" : err.messages}
     
     email = data["email"]
-    user =  User.query.filter_by(email = email).first()
+    existing_user =  User.query.filter_by(email = email).first()
     
-    if not user :
+    if not existing_user :
         return {"status": "failure", "code" : 404, "message" : "Couldn't find your Moru Account"}
         
-    if not bcrypt.check_password_hash(user.password, data["password"]) :
+    if not bcrypt.check_password_hash(existing_user.password, data["password"]) :
          return {"status": "failure", "code" : 401, "message" : "Please Enter Correct Password"}
      
     # if user.is_verified == False :
     #     return {"status" : "failure", "code" : 403, "message" : "The account is unverified. Please check your email for verificaion"}
     
-    return {"status" : "success", "user" : user, "validated_user_input" : data }
+    return {"status" : "success", "user" : existing_user, "validated_user_input" : data }
 
 def validate_user_update_route(user, user_id, data) :
     try:
@@ -233,7 +234,7 @@ def validate_user_update_route(user, user_id, data) :
 
     return {"status" : "success", "validated_user_input" : data, "user_object" : user}
 
-def validate_user_delete_route(user, user_id) :
+def validate_user_delete_route(user, user_id):
     if user.is_admin == False and user.id != user_id :
         return {"status": "failure", "code" : 403, "message" : "You are not authorized"}
     
@@ -241,9 +242,7 @@ def validate_user_delete_route(user, user_id) :
     if not user_to_be_deleted :
         return {"status": "failure", "code" : 404, "message" : "User doesnot exist"}
     
-    redirect_required = True
-    if user.is_admin == True and user.id != user_to_be_deleted.id :
-        redirect_required = False
+    redirect_required = user.is_admin != True or user.id == user_to_be_deleted.id
         
     return {"status": "success", "user_object" : user_to_be_deleted, "redirect_required" : redirect_required}
 
