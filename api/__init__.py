@@ -45,13 +45,13 @@ def create_app(config=Config):
     api.add_resource(UsersList, "/users")
     api.add_resource(UserById, "/users/<int:user_id>")
     api.add_resource(GenerateToken, "/generate_token/<string:email>")
-    api.add_resource(VerifyToken, "/verify_token/<token>")
+    api.add_resource(VerifyToken, "/verify_token/<user_token>")
     api.add_resource(CreatePost, "/posts/new")
     api.add_resource(PostsList, "/posts")
     api.add_resource(PostsById, "/posts/<int:post_id>")
     api.add_resource(UnverifiedPost, "/posts/review", "/posts/review/<int:post_id>")
     api.add_resource(Comments, "/comments/<int:post_id>")
     api.add_resource(Votes, "/votes/<int:post_id>")
-    api.add_resource(ResetPassword, "/reset_password/<token>")
+    api.add_resource(ResetPassword, "/reset_password/<user_token>")
         
     return app

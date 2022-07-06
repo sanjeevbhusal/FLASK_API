@@ -44,7 +44,7 @@ class UserResponse(User):
 class ResetPassword(Schema):
     password = fields.String(required=True)
     confirm_password = fields.String(required=True)
-    user_id = fields.Integer(required=True)
+    user_id = fields.Integer()
     
     @validates_schema
     def compare_passwords(self, data, **kwargs):
