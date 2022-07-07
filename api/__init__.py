@@ -15,7 +15,6 @@ mail = Mail()
 def create_app(config=Config):
     app = Flask(__name__) 
     app.config.from_object(config) 
-    # api = swagger.docs(Api(app), apiVersion='1', api_spec_url="/api/v1/spec")
     api = Api(app)
     db.init_app(app)
     

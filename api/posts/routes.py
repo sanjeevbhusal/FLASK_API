@@ -2,16 +2,12 @@ from flask import request
 from sqlalchemy import or_
 from flask_restful import Resource
 from api import db
-from api.models import Post, Vote, Comment 
-from api.schema import  PostResponse, PostUpdate, CommentResponse
-from api.utils import authenticate, email_gateway, send_post_rejected_email, validate_create_new_post_route, validate_update_single_post_route,validate_delete_single_post_route, validate_update_post_status_route, validate_add_comment_route, validate_update_comment_route, CategoryMismatchException, post_database
-
-
 from werkzeug.exceptions import BadRequest
-from smtplib import SMTPException
 from marshmallow import ValidationError
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
+from api.models import Post, Vote, Comment 
+from api.schema import  PostResponse, PostUpdate, CommentResponse, RejectedReasonNotPresent, CategoryMismatchException
+from api.utils import authenticate, email_gateway, post_database, PostNotFoundException, UnautorizedAccessException, PostAlreadyVerifiedException, CommentNotFoundException, validate_routes
 
 class CreatePost(Resource) :
     @authenticate.token_required
@@ -19,11 +15,11 @@ class CreatePost(Resource) :
         schema = PostResponse(exclude=["comments"])
         try:
             request_data = request.form
-            title, content, category, image = validate_create_new_post_route(request_data).values()
+            title, content, category, image = validate_routes.create_post(request_data).values()
             if user.is_admin == True :
                 post.is_reviewed = True
                 post.is_accepted = True
-            post = post_database.create_post(title, content, category, image)
+            post = post_database.create_post(user.id, title, content, category, image)
             post_database.save(post)
         except BadRequest as err :
             return {"status" : "failure", "message" : err.description}, 400
@@ -34,7 +30,6 @@ class CreatePost(Resource) :
 
         post = schema.dump(post)
         return {"status": "success", "post_details": post, "message": "Post has been Created"}, 201
-
 
 class PostsList(Resource) :
     def get(self) :
@@ -65,152 +60,131 @@ class PostsById(Resource) :
     
     @authenticate.token_required
     def put(user, self, post_id) :
-        unverified_user_input = request.get_json()
-        data = validate_update_single_post_route(unverified_user_input, post_id, user)
+        schema = PostUpdate()
+        try:
+            request_data = request.get_json()
+            post_data, post = validate_routes.update_post(request_data, post_id, user).values()
+            post_database.update_post(post, post_data["title"], post_data["content"], post_data["category"])
+            return {"status" : "success", "message" : "Post Updated Succesfully", "post" : schema.dump(post)}, 200
+        except BadRequest as err :
+            return {"status" : "failure", "message" : err.description}, 400
+        except ValidationError as err :
+            return {"status" : "failure", "error" : err.messages}, 400
+        except PostNotFoundException as err :
+            return {"status" : "failure" , "error" : err.args[0]}, 404
+        except UnautorizedAccessException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 403
         
-        status = data["status"]
-        user_input = data.get("verified_user_input")
-        post = data.get("post_object")
-        
-        if status == "failure":
-            return data, data["code"]
-        
-        post.title = user_input["title"]
-        post.content = user_input["content"]
-        post.category = user_input["category"]
-        db.session.commit()
-        updated_post = PostUpdate().dump(post)
-        
-        return {"status" : "success", "code" : 200, "message" : "Updated Succesfully", "post" : updated_post}, 200
-    
     @authenticate.token_required
     def delete(user, self, post_id) :
-        data = validate_delete_single_post_route(user, post_id)
-        
-        status = data["status"]
-        post = data.get("post_object")
-        
-        if status == "failure" :
-            return data, data["code"]
-        
-        db.session.delete(post)
-        db.session.commit()
-        
-        return {"status" : "success", "message" : "The post has been deleted", "code" : 200}, 200
-    
+        try:
+            post = validate_routes.delete_post(user, post_id)
+            post_database.delete_post(post)
+            return {"status" : "success", "message" : "The post has been deleted"}, 200
+        except PostNotFoundException as err :
+            return {"status" : "failure", "message" : err.args[0]}, 404
+        except UnautorizedAccessException as err :
+            return {"status" : "failure" , "message" : err.args[0]}, 403
+
 class Votes(Resource) :
     @authenticate.token_required
     def post(user, self, post_id) :
-        post = Post.query.get(post_id)
+        post = post_database.get_by_id(post_id)
         if not post :
-            return {"status": "failure", "code": 404, "message" : "The Post doesnot exist."}, 404
+            return {"status": "failure", "error" : "The Post doesnot exist."}, 404
         post_votes = len((Vote.query.filter_by(post_id = post_id)).all())
-        
         #if user has already voted on this post, remove the vote.
         vote = Vote.query.filter_by(post_id = post_id, user_id = user.id).first()
         if vote :
             db.session.delete(vote)
             db.session.commit()
-            return {"status" : "success", "code" : 200, "votes": post_votes - 1, "message" : "Your Like has been removed succesfully.", "has_voted" : False}, 200
+            return {"status" : "success", "votes": post_votes - 1, "message" : "Your Like has been removed succesfully.", "has_voted" : False}, 200
         else:
             new_vote = Vote(user_id = user.id, post_id = post_id) 
             db.session.add(new_vote)
             db.session.commit()
-            return {"status" : "success", "code" : 200, "votes": post_votes + 1, "message" : "Your Like has been added succesfully.", "has_voted" : True}, 200
+            return {"status" : "success", "votes": post_votes + 1, "message" : "Your Like has been added succesfully.", "has_voted" : True}, 200
         
 class UnverifiedPost(Resource) :
     @authenticate.admin_token_required
     def get(user, self) :
+        schema = PostResponse(excluse=["comments"])
         posts = Post.query.filter_by(is_reviewed= False)
-        posts = PostResponse(exclude=["comments"]).dump(posts, many=True)
-        return {"status" : "success", "code" : 200, "posts" : posts, "message": "Here are all the posts to review"}, 200
+        posts = schema.dump(posts, many=True)
+        return {"status" : "success", "posts" : posts}, 200
     
     @authenticate.admin_token_required
     def put(user, self, post_id):
-        unverified_user_input = request.get_json()
-        data = validate_update_post_status_route(unverified_user_input, post_id)
-        
-        status = data["status"]
-        verified_user_input = data.get("verified_user_input")
-        post = data.get("post_object")
-        
-        if status == "failure" :
-            return data, data["code"]
-        
-        is_accepted = False 
-        if verified_user_input.get("is_accepted"):
-            is_accepted = True
-            post.is_reviewed = True
-            post.is_accepted = True
-            email_gateway.send_post_accepted_email(post)
-        else:
-            post.rejected_reason = verified_user_input["rejected_reason"]
-            send_post_rejected_email(post)
-            db.session.delete(post)
-
-        db.session.commit()   
-
-        return {"status" : "success", "code" : 200, "message" : "Post has been Accepted" if is_accepted else "Post has been rejected", "is_accepted" : is_accepted}, 200
+        try:
+            request_data = request.get_json()
+            input_data, post = validate_routes.update_post_status(request_data, post_id).values()
+            if input_data["is_accepted"] :
+                post_database.verify_post(post)
+                email_gateway.send_post_accepted_email(post)
+            else :
+                post_database.delete_post(post)
+                email_gateway.send_post_rejected_email(post)    
+            return {"status" : "success", "message" : "Your post is accepted" if input_data["is_accepted"] else "Your post is rejected"}, 400
+                
+        except ValidationError as err :
+            return {"status" : "failure", "error" : err.messages}, 400
+        except RejectedReasonNotPresent as err :
+            return {"status" : "failure", "error" : err.args[0]}, 400
+        except PostNotFoundException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 404
+        except PostAlreadyVerifiedException as err :
+            return {"status" : 'failure', "error" : err.args[0]}, 400 
     
 class Comments(Resource) :
-    def get(self, id) :
-        post = Post.query.get(id)
+    def get(self, post_id) :
+        schema = CommentResponse()
+        post = post_database.get_by_id(post_id)
         if not post :
-            return {"status": "failure" , "code" : 404, "message" : "The Post doesnot exist."}
-        comments = CommentResponse().dump(post.comments, many=True)
-        return {"status" : "success", "code" : 200, "comments" : comments}, 200
+            return {"status": "failure" ,"message" : "The Post doesnot exist."}, 404
+        comments = schema.dump(post.comments, many=True)
+        return {"status" : "success", "comments" : comments}, 200
     
     @authenticate.token_required
     def post(user, self, post_id):
-        unvalidated_user_input = request.get_json()
-        data = validate_add_comment_route(unvalidated_user_input, post_id)
-        
-        status = data["status"]
-        comment = data.get("validated_user_input")
-        
-        if status == "failure" :
-            return data, data["code"]
-        
-        comment = Comment(**comment, user_id = user.id, post_id = post_id)
-        db.session.add(comment)
-        db.session.commit()
-        comment = CommentResponse().dump(comment)
-        
-        return {"status" : "success", "code" : 201, "comment" : comment, "message" : "Comment Added Succesfully."}, 201
+        schema = CommentResponse()
+        try:
+            request_data = request.get_json()
+            comment_data = validate_routes.add_comment(request_data, post_id)
+            comment = Comment(**comment_data, user_id = user.id, post_id = post_id)
+            db.session.add(comment)
+            db.session.commit()
+            return {"status" : "success", "comment" : schema.dump(comment)}, 200
+        except ValidationError as err :
+            return {"status" : "failure", "error" : err.messages}, 400
+        except PostNotFoundException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 404
     
     @authenticate.token_required
     def put(user, self, post_id) :
-        unvalidated_user_input = request.get_json()
-        data = validate_update_comment_route(unvalidated_user_input, post_id, user)
-        
-        status = data["status"]
-        validated_user_input = data.get("validated_user_input")
-        comment = data.get("comment")
-        
-        if status == "failure" :
-            return data, data["code"]
-        
-        comment.message = validated_user_input["message"]
-        db.session.commit()
-        comment = CommentResponse(exclude=["author", "created_at"]).dump(comment)
-        
-        return {"status" : "success", "updated_comment" : comment}, 200
+        try:
+            request_data = request.get_json()
+            comment_data, comment = validate_routes.update_comment(request_data, post_id, user)
+            comment.message = comment_data["message"]
+            db.session.commit()
+            return {"status" : "success", "message" : "Comment Updated Succesfully", "comment" : comment.message}, 200
+        except ValidationError as err :
+            return {"status" : "failure", "error" : err.message}, 400
+        except CommentNotFoundException as err :
+            return {"status": "failure", "error": err.args[0]}, 404
+        except UnautorizedAccessException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 403
     
     @authenticate.token_required
     def delete(user, self, post_id) :
-        data = validate_delete_comment_route(post_id, user)
-        
-        status = data["status"]
-        comment = data.get("comment")
-        
-        if status == "failure" :
-            return data, data["code"]
-        
-        db.session.delete(comment)
-        db.session.commit()
-        
-        return {"status" : "success", "message" : "Comment has been deleted.", "code" : 200}, 200
-        
+        try:
+            comment = validate_routes.delete_comment(post_id, user)
+            db.session.delete(comment)
+            db.session.commit()
+            return {"status" : "success", "message" : "Comment deleted succesfully."}, 200
+        except UnautorizedAccessException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 400
+        except CommentNotFoundException as err :
+            return {"status" : "failure", "error" : err.args[0]}, 404
 
         
         

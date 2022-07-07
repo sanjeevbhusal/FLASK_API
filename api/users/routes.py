@@ -26,6 +26,7 @@ class Register( Resource):
             return {"status" : "failure", "error" : err.args[0]}, 409
         except SMTPException as err :
             return {"status" : "failure", "error" : "Invalid Email address"}, 400
+
 class Login(Resource) :
     def post(self):
         try: 

@@ -91,6 +91,9 @@ class PostResponse(Post):
     comments = fields.List(fields.Nested(Comment))
     votes = fields.List(fields.Nested(VoteResponse))
     image= fields.String()
+    
+class RejectedReasonNotPresent(Exception):
+    pass
      
 class PostReview(Schema):
     is_accepted = fields.Boolean(required=True)
@@ -99,7 +102,7 @@ class PostReview(Schema):
     @validates_schema
     def validate_rejected_reason(self, data, **kwargs):
         if data["is_accepted"] == False and "rejected_reason" not in data:
-            raise Exception()
+            raise RejectedReasonNotPresent("Rejected Reason is also required if The Post has been Rejeted")
     
 
 #*********************************************************************************** 
