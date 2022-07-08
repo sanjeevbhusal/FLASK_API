@@ -16,10 +16,10 @@ class CreatePost(Resource) :
         try:
             request_data = request.form
             title, content, category, image = validate_routes.create_post(request_data).values()
+            post = post_database.create_post(user.id, title, content, category, image)
             if user.is_admin == True :
                 post.is_reviewed = True
                 post.is_accepted = True
-            post = post_database.create_post(user.id, title, content, category, image)
             post_database.save(post)
         except BadRequest as err :
             return {"status" : "failure", "message" : err.description}, 400
