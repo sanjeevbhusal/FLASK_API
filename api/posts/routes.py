@@ -108,7 +108,7 @@ class Votes(Resource) :
 class UnverifiedPost(Resource) :
     @authenticate.admin_token_required
     def get(user, self) :
-        schema = PostResponse(excluse=["comments"])
+        schema = PostResponse(exclude=["comments"])
         posts = Post.query.filter_by(is_reviewed= False)
         posts = schema.dump(posts, many=True)
         return {"status" : "success", "posts" : posts}, 200
