@@ -134,6 +134,7 @@ class Token :
 class EmailGateway :
     def __init__(self) :
         pass
+    
     def send_welcome_message(self, email):
         msg = Message("Welcome to Moru Digital Wallet", sender="noreply@gmail.com", recipients= [email])
         msg.body = """Welcome to Moru Digital Wallet. We are glad to have you on board. In order to get the most out of Moru, please confirm your account and fill the KYC(Know Your Customer) form. This will unlock all the features available in Moru Digital Wallet.

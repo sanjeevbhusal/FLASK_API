@@ -12,6 +12,7 @@ migrate = Migrate()
 bcrypt = Bcrypt()
 mail = Mail()
 
+
 def create_app(config=Config):
     app = Flask(__name__) 
     app.config.from_object(config) 
@@ -52,5 +53,6 @@ def create_app(config=Config):
     api.add_resource(Comments, "/comments/<int:post_id>")
     api.add_resource(Votes, "/votes/<int:post_id>")
     api.add_resource(ResetPassword, "/reset_password/<user_token>")
+    
         
     return app
