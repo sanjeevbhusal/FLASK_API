@@ -96,7 +96,7 @@ class PostDatabase :
     def verify_post(self, post) :
         post.is_reviewed = True
         post.is_accepted = True
-        db.sessio.commit()
+        db.session.commit()
     def create_post(self, user_id, title, content, category, image) :
         return Post(user_id = user_id, title = title, content = content, category = category, image = image)
     def save(self, post) :
